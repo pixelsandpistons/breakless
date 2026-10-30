@@ -45,8 +45,9 @@ The axum binary. Contract: every route and JSON field listed at the top of
 - [x] A run against real Twitch from a home line (2026-10-30: the most-watched channel opened from
       Canada with 6 qualities; a 102 s mid-roll was cut, 7 segments, playlist held at 15; no unknown
       titles or classes).
-- [x] A run through an exit (2026-10-30, Iceland: session from the exit, 26 segments passed in
-      20 s, nothing cut, no errors).
+- [x] A run through an exit (2026-10-30, Iceland): a 10-minute `breakless-tools soak` of six busy
+      channels through the Rust service, 1,870 segments passed, 0 cut, 0 s stalled, 0 errors, 12
+      client-side advert requests ignored.
 - [x] The page in headless Chromium against the Rust service (`reference/python/test_page.mjs`,
       home line, 2026-10-30): the player attached, a real 30 s pre-roll was cut and 1080p video
       played after it.
