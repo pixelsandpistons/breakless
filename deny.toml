@@ -12,6 +12,15 @@ allow = ["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "Unicode-3.
 [licenses.private]
 ignore = true
 
+# Our own crates. Dependencies stay on the permissive list above.
+[[licenses.exceptions]]
+name = "breakless"
+allow = ["AGPL-3.0-only"]
+
+[[licenses.exceptions]]
+name = "breakless-formats"
+allow = ["AGPL-3.0-only"]
+
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"

@@ -34,7 +34,7 @@ jobs:
           RUSTDOCFLAGS: -D warnings
       - name: Licence and advisory audit
         run: |
-          cargo install cargo-deny --version 0.18.3 --locked
+          cargo install cargo-deny --version 0.20.2 --locked
           cargo deny check
 
   prototype:
