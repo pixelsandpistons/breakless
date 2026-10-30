@@ -66,6 +66,13 @@ pub fn random_u64() -> u64 {
 /// A POST's body and extra headers.
 pub type PostBody<'a> = (Vec<u8>, Vec<(&'a str, String)>);
 
+/// Makes ring the process's TLS provider. reqwest is built without one of its own (ring needs no
+/// C toolchain beyond a compiler); every binary that builds a `reqwest::Client` calls this first.
+/// Calling it twice is harmless.
+pub fn install_tls() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
 /// One way out: straight, or through an HTTP proxy.
 #[derive(Clone)]
 pub struct Via {
@@ -74,9 +81,7 @@ pub struct Via {
 
 impl Via {
     fn build(proxy: Option<&str>) -> Result<Self, reqwest::Error> {
-        // reqwest is built without a TLS provider of its own; ring is the one (no C toolchain
-        // beyond a compiler). Installing twice is harmless.
-        let _ = rustls::crypto::ring::default_provider().install_default();
+        install_tls();
         let mut b = reqwest::Client::builder()
             .user_agent(UA)
             .timeout(TIMEOUT)

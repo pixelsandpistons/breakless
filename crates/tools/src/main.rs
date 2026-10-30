@@ -28,6 +28,7 @@ enum Command {
 }
 
 fn main() {
+    breakless::twitch::install_tls();
     let runtime = tokio::runtime::Runtime::new().expect("tokio runtime");
     let code = runtime.block_on(async {
         match Cli::parse().command {
