@@ -15,8 +15,9 @@ path = "src/main.rs"
 breakless = { path = "../service", version = "0.1.0" }
 breakless-formats = { path = "../formats", version = "0.1.0" }
 clap = { version = "4", features = ["derive", "env"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "http2", "charset"] }
 serde_json = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
 
 [lints]
 workspace = true

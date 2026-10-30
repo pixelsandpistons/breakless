@@ -16,6 +16,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   against a fake Twitch on loopback. `/api/chat` and `/api/emotes` answer 501 until the chat lands.
 - `breakless-tools probe`: pre-roll measurement per token kind, straight out or through a proxy,
   with the prototype's table and summary lines.
+- `breakless-tools soak`: watches channels through a running service and reports breaks, stalls
+  and errors per channel, as the prototype's `soak.py` does.
 - The Python prototype as `reference/python/`, the page as `web/`, a generic compose file as
   `deploy/`, the pinned build image under `tools/build-image/` and the `tools/cargo.sh` wrapper.
 - The plan (`docs/PLAN.md`), the architecture notes and the first contributor tasks.
