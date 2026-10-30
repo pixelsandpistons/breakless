@@ -1,0 +1,22 @@
+[package]
+name = "breakless-tools"
+description = "Measuring Twitch's adverts: probe, soak, watch-raw, capture, upstream."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "breakless-tools"
+path = "src/main.rs"
+
+[dependencies]
+breakless = { path = "../service" }
+breakless-formats = { path = "../formats" }
+clap = { version = "4", features = ["derive", "env"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+[lints]
+workspace = true

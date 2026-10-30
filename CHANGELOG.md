@@ -14,6 +14,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   playlists, `/api/status` (plus an `exits` list and the proxy's host per exit), `/api/watch`,
   `/api/channels`, `/api/follow`, the page, `adverts.jsonl` and `follows.json`. Ten tests drive it
   against a fake Twitch on loopback. `/api/chat` and `/api/emotes` answer 501 until the chat lands.
+- `breakless-tools probe`: pre-roll measurement per token kind, straight out or through a proxy,
+  with the prototype's table and summary lines.
 - The Python prototype as `reference/python/`, the page as `web/`, a generic compose file as
   `deploy/`, the pinned build image under `tools/build-image/` and the `tools/cargo.sh` wrapper.
 - The plan (`docs/PLAN.md`), the architecture notes and the first contributor tasks.

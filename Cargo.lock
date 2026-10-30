@@ -137,6 +137,17 @@ name = "breakless-formats"
 version = "0.1.0"
 
 [[package]]
+name = "breakless-tools"
+version = "0.1.0"
+dependencies = [
+ "breakless",
+ "breakless-formats",
+ "clap",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

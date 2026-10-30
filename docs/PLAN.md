@@ -45,15 +45,20 @@ The axum binary. Contract: every route and JSON field listed at the top of
 - [x] A run against real Twitch from a home line (2026-10-30: the most-watched channel opened from
       Canada with 6 qualities; a 102 s mid-roll was cut, 7 segments, playlist held at 15; no unknown
       titles or classes).
-- [ ] A run through an exit, and a player (mpv, the page) on the Rust service for an hour.
+- [x] A run through an exit (2026-10-30, Iceland: session from the exit, 26 segments passed in
+      20 s, nothing cut, no errors).
+- [ ] A player (mpv, the page) on the Rust service for an hour, through the exit.
 - [ ] Behind a flag: pass `#EXT-X-TWITCH-PREFETCH` lines through when not in a break (2 to 4 s less
       delay). Measure before enabling.
 
 ### 3. Tools
 
-One binary, `breakless-tools`, with the prototype's five scripts as subcommands: `probe`, `soak`,
-`watch-raw`, `capture`, `upstream` ([task 2](tasks/02-upstream-watch.md) for the last). Output
-shapes stay as they are so existing scripts that parse them keep working.
+One binary, `breakless-tools`, with the prototype's five scripts as subcommands. Output shapes
+stay as they are so existing scripts that parse them keep working.
+
+- [x] `probe` (the health check's `clean / answered` and `Twitch saw us in` lines).
+- [ ] `soak`, `watch-raw`, `capture`.
+- [ ] `upstream` ([task 2](tasks/02-upstream-watch.md)).
 
 ### 4. Container and releases ([task 3](tasks/03-container-and-release.md))
 
