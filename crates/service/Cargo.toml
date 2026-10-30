@@ -16,7 +16,7 @@ name = "breakless"
 path = "src/main.rs"
 
 [dependencies]
-breakless-formats = { path = "../formats" }
+breakless-formats = { path = "../formats", version = "0.1.0" }
 reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "http2", "charset"] }
 # ring, not aws-lc-rs: no cmake in the build image. Installed as the process default in main.
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }

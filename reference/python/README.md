@@ -16,6 +16,7 @@ code or a note that the Rust code does not have the behaviour yet.
 | `capture.py` | Saves a scrubbed master and media playlist pair into `fixtures/playlists/` |
 | `upstream.py` | What other advert-cutting projects look for that this does not. Task 02 ports it |
 | `test_twitchlib.py`, `test_chat.py` | 23 and 18 tests, no network |
+| `test_page.mjs` | Opens the page in headless Chromium for a while and says whether the video really moved. `BASE=http://127.0.0.1:8080 node reference/python/test_page.mjs [channel] [seconds]` |
 
 ```sh
 python3 reference/python/test_twitchlib.py

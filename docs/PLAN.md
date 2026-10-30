@@ -47,7 +47,10 @@ The axum binary. Contract: every route and JSON field listed at the top of
       titles or classes).
 - [x] A run through an exit (2026-10-30, Iceland: session from the exit, 26 segments passed in
       20 s, nothing cut, no errors).
-- [ ] A player (mpv, the page) on the Rust service for an hour, through the exit.
+- [x] The page in headless Chromium against the Rust service (`reference/python/test_page.mjs`,
+      home line, 2026-10-30): the player attached, a real 30 s pre-roll was cut and 1080p video
+      played after it.
+- [ ] A player on the Rust service for an hour, through the exit.
 - [ ] Behind a flag: pass `#EXT-X-TWITCH-PREFETCH` lines through when not in a break (2 to 4 s less
       delay). Measure before enabling.
 

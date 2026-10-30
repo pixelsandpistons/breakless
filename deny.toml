@@ -28,7 +28,6 @@ allow = ["AGPL-3.0-only"]
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
-allow-wildcard-paths = true # the workspace crates depend on each other by path
 
 [sources]
 unknown-registry = "deny"
