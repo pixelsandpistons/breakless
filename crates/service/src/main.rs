@@ -1,15 +1,12 @@
-//! The Breakless service binary.
-//!
-//! Today it answers `/health` and nothing else: the skeleton the container image and the release
-//! workflow build against while the routes are ported from the Python prototype
-//! (`reference/python/server.py`, whose docstring is the contract).
+//! `breakless serve` and `breakless health`.
 
 use std::io::{Read, Write};
-use std::net::{SocketAddr, TcpStream};
+use std::net::TcpStream;
+use std::sync::Arc;
 use std::time::Duration;
 
-use axum::Router;
-use axum::routing::get;
+use breakless::config::Config;
+use breakless::{app, routes};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -26,11 +23,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Serve playlists, the page and the API.
-    Serve {
-        /// Address to listen on. Inside a container `0.0.0.0:8080`; on a shared host `127.0.0.1:8080`.
-        #[arg(long, default_value = "0.0.0.0:8080", env = "BREAKLESS_LISTEN")]
-        listen: SocketAddr,
-    },
+    Serve(Config),
     /// Exit 0 when a running service answers `/health`. Used as the container's healthcheck.
     Health {
         /// The service's health address.
@@ -42,20 +35,39 @@ enum Command {
 fn main() {
     tracing_subscriber::fmt().with_target(false).init();
     match Cli::parse().command {
-        Command::Serve { listen } => serve(listen),
+        Command::Serve(config) => serve(config),
         Command::Health { url } => std::process::exit(i32::from(!healthy(&url))),
     }
 }
 
-fn serve(listen: SocketAddr) {
+fn serve(config: Config) {
     let runtime = tokio::runtime::Runtime::new().expect("tokio runtime");
     runtime.block_on(async {
-        let app = Router::new().route("/health", get(|| async { "ok\n" }));
+        let listen = config.listen;
+        let exits = config.proxies();
+        let data = config.data.clone();
+        let app = Arc::new(app::App::new(config).expect("HTTP clients"));
+        let reaper = app.clone();
+        tokio::spawn(async move {
+            let mut tick = tokio::time::interval(Duration::from_secs(15));
+            loop {
+                tick.tick().await;
+                reaper.reap();
+            }
+        });
         let listener = tokio::net::TcpListener::bind(listen)
             .await
             .expect("bind the listen address");
-        tracing::info!("listening on {listen}");
-        axum::serve(listener, app)
+        tracing::info!(
+            "listening on {listen}; exits {}; data in {}",
+            if exits.is_empty() {
+                "none (home line, adverts cut)".to_string()
+            } else {
+                exits.len().to_string()
+            },
+            data.display()
+        );
+        axum::serve(listener, routes::router(app))
             .with_graceful_shutdown(async {
                 let _ = tokio::signal::ctrl_c().await;
             })

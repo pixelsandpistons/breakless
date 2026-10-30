@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 - `breakless-formats`: master and media playlist parsing, advert marks, the rebuilt `Timeline`,
   attribute-list and date parsing. 25 tests, including a byte-for-byte comparison with the Python
   prototype's output on the captured playlists under `fixtures/`.
+- `breakless` (the service): sessions and exits with the prototype's fallback rules, the rebuilt
+  playlists, `/api/status` (plus an `exits` list and the proxy's host per exit), `/api/watch`,
+  `/api/channels`, `/api/follow`, the page, `adverts.jsonl` and `follows.json`. Ten tests drive it
+  against a fake Twitch on loopback. `/api/chat` and `/api/emotes` answer 501 until the chat lands.
 - The Python prototype as `reference/python/`, the page as `web/`, a generic compose file as
   `deploy/`, the pinned build image under `tools/build-image/` and the `tools/cargo.sh` wrapper.
 - The plan (`docs/PLAN.md`), the architecture notes and the first contributor tasks.

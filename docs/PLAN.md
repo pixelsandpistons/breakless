@@ -29,16 +29,23 @@ reasoning that matters is here.
 The axum binary. Contract: every route and JSON field listed at the top of
 `reference/python/server.py`, and the playlists byte for byte.
 
-- [ ] Sessions and exits. Exits are a list; each has its own rest timer after a failure; a channel
-      opens through the first usable exit, tries it twice, then the home line, and moves back when an
-      exit is usable again. One refresh task per channel and quality; readers take the last rendered
-      playlist, no network under a lock.
-- [ ] `/api/status`, `/api/watch`, `/api/channels`, `/api/follow`, static files, the CSP header.
-- [ ] `adverts.jsonl` (same line shape, 1 MB rotation) and `follows.json` (atomic write).
+- [x] Sessions and exits. Exits are a list; each has its own rest timer after a failure; a channel
+      opens through the first usable exit, tries it twice, then the other exits, then the home line,
+      and moves back when an exit is usable again. Each quality refreshes under its own lock, so
+      one slow quality does not hold the others; opening a session holds the channel's lock.
+- [x] `/api/status`, `/api/watch`, `/api/channels`, `/api/follow`, static files, the CSP header.
+- [x] `adverts.jsonl` (same line shape, 1 MB rotation) and `follows.json` (atomic write).
 - [ ] Chat rooms over TLS to `irc.chat.twitch.tv:6697` as a guest, long poll of at most 25 s, 200
       events kept, 12 rooms, 60 s idle; emotes merged and cached as the prototype does.
-- [ ] Tests against a fake Twitch ([task 4](tasks/04-fake-twitch.md)): open through the exit; exit
-      dies; home fallback cuts the pre-roll; exit returns; channel goes offline.
+- [x] Tests against a fake Twitch (`crates/service/tests/fake_twitch.rs`): home session, clean
+      stream, pre-roll cut and recorded, mid-roll with a discontinuity, offline channel, a passing
+      error retried, a dead exit sending the session home, follows, the page and its headers.
+- [ ] Tests still missing ([task 4](tasks/04-fake-twitch.md) grows the fake for them): a live exit
+      proxy that goes down and comes back, a dropped connection, the exit's country in status.
+- [x] A run against real Twitch from a home line (2026-10-30: the most-watched channel opened from
+      Canada with 6 qualities; a 102 s mid-roll was cut, 7 segments, playlist held at 15; no unknown
+      titles or classes).
+- [ ] A run through an exit, and a player (mpv, the page) on the Rust service for an hour.
 - [ ] Behind a flag: pass `#EXT-X-TWITCH-PREFETCH` lines through when not in a break (2 to 4 s less
       delay). Measure before enabling.
 

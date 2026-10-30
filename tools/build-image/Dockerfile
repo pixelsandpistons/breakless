@@ -1,4 +1,4 @@
 # Build image: the official Alpine Rust image for the pinned toolchain plus the lint components.
-# Nothing else is installed; the crates have no C dependencies.
+# gcc and the musl headers are for `ring` (TLS); nothing else has C in it.
 FROM rust:1.99.1-alpine
-RUN rustup component add rustfmt clippy
+RUN apk add --no-cache gcc musl-dev && rustup component add rustfmt clippy

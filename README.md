@@ -6,7 +6,9 @@ playlists. Self-hosted, written in Rust, made with AI.
 > **Early development.** The service that runs today is the Python prototype in
 > [`reference/python/`](reference/python/), live at the maintainer's home since 4 October 2026. The
 > Rust rewrite in [`crates/`](crates/) is in progress: the playlist parser and the rebuilt timeline
-> are done and tested against the prototype's output; the service, the chat and the tools are not.
+> are done and tested against the prototype's output, and the service serves playlists against a
+> fake Twitch and, once, against real Twitch from a home line; chat, the tools and a run through an
+> exit are not done.
 > See [Status](#status).
 
 ## What it does
@@ -40,8 +42,8 @@ page: a channel list, a player, read-only chat with BetterTTV, FrankerFaceZ and 
 |---|---|
 | Python prototype (`reference/python/`) | Running at the maintainer's home since 2026-10-04 through an exit in Iceland: 0 advert breaks seen through the exit in every soak and status read since. 41 offline tests. Standard library only |
 | `breakless-formats` (Rust) | Playlist parsing, advert marks, the rebuilt timeline: 25 tests, including a byte-for-byte comparison with the prototype's output on real captured playlists |
-| `breakless` service (Rust) | Not started. Contract: every route and field of the prototype, unchanged |
-| Chat and emotes (Rust) | Not started; the prototype's `chat.py` is the specification |
+| `breakless` service (Rust) | Playlists, sessions, exits with fallback, status, the channel list, follows, the page: built, 10 tests against a fake Twitch in `crates/service/tests/`. Same routes and fields as the prototype. Run once against real Twitch from a home line on 2026-10-30: a real mid-roll of 102 s was cut (7 segments) with no unknown marks. Not yet run through an exit |
+| Chat and emotes (Rust) | Not started; `/api/chat` and `/api/emotes` answer 501. The prototype's `chat.py` is the specification ([task 01](docs/tasks/01-chat-formats.md)) |
 | Tools: probe, soak, watch-raw, capture, upstream watch (Rust) | Not started; the prototype's scripts are the specification |
 | Container image, releases | Not started |
 | YouTube | Research only; see [the plan](docs/PLAN.md#youtube) |
