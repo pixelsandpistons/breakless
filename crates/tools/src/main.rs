@@ -1,10 +1,12 @@
 //! `breakless-tools`: the measuring tools beside the service.
 //!
-//! Today: `probe` and `soak`. The prototype's `watch_raw.py`, `capture.py` and `upstream.py` are
-//! the specifications for the subcommands still to come (`docs/PLAN.md`, phase 3).
+//! `probe`, `soak`, `watch-raw` and `capture` are ports of the prototype's scripts. `upstream` is
+//! still to come (`docs/tasks/02-upstream-watch.md`).
 
+mod capture;
 mod probe;
 mod soak;
+mod watch_raw;
 
 use clap::{Parser, Subcommand};
 
@@ -25,6 +27,10 @@ enum Command {
     Probe(probe::Args),
     /// Watch channels through a running service for a while and report breaks and stalls.
     Soak(soak::Args),
+    /// Follow one channel's playlist as Twitch sends it and print every change of tags and titles.
+    WatchRaw(watch_raw::Args),
+    /// Save a scrubbed master and media playlist pair as a fixture.
+    Capture(capture::Args),
 }
 
 fn main() {
@@ -34,6 +40,8 @@ fn main() {
         match Cli::parse().command {
             Command::Probe(args) => probe::run(args).await,
             Command::Soak(args) => soak::run(args).await,
+            Command::WatchRaw(args) => watch_raw::run(args).await,
+            Command::Capture(args) => capture::run(args).await,
         }
     });
     std::process::exit(code);

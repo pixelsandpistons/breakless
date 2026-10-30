@@ -18,6 +18,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   with the prototype's table and summary lines.
 - `breakless-tools soak`: watches channels through a running service and reports breaks, stalls
   and errors per channel, as the prototype's `soak.py` does.
+- `breakless-tools watch-raw` and `capture`: follow a channel's playlist as Twitch sends it, and
+  save a scrubbed master and media pair as a fixture (address, tokens, long paths, session ids,
+  channel name).
 - The Python prototype as `reference/python/`, the page as `web/`, a generic compose file as
   `deploy/`, the pinned build image under `tools/build-image/` and the `tools/cargo.sh` wrapper.
 - The plan (`docs/PLAN.md`), the architecture notes and the first contributor tasks.

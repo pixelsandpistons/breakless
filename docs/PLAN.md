@@ -61,7 +61,7 @@ stay as they are so existing scripts that parse them keep working.
 
 - [x] `probe` (the health check's `clean / answered` and `Twitch saw us in` lines).
 - [x] `soak` (the table and totals line of the prototype's).
-- [ ] `watch-raw`, `capture`.
+- [x] `watch-raw`, `capture`.
 - [ ] `upstream` ([task 2](tasks/02-upstream-watch.md)).
 
 ### 4. Container and releases ([task 3](tasks/03-container-and-release.md))
