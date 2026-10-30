@@ -1,0 +1,8 @@
+country=CA
+cluster=cloudfront_prod_use12_twitch_ispc
+variant=chunked|1080p60 (source)|8562587|1920x1080|60.000|avc1.64002A,mp4a.40.2
+variant=720p60|720p60|4280807|1280x720|60.000|avc1.640020,mp4a.40.2
+variant=480p30|480p30|1565606|852x480|30.000|avc1.64001F,mp4a.40.2
+variant=360p30|360p30|1029067|640x360|30.000|avc1.4D401E,mp4a.40.2
+variant=160p30|160p30|706578|284x160|30.000|avc1.4D400C,mp4a.40.2
+variant=audio_only|audio_only|218687|||mp4a.40.2

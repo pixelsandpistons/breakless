@@ -1,0 +1,52 @@
+# Formatting, lints, tests, docs and the licence audit on every push and pull request,
+# plus the Python prototype's own tests and a check that the Rust/Python differential
+# fixtures are current.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain (pinned by rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked
+      - run: cargo doc --workspace --no-deps --locked
+        env:
+          RUSTDOCFLAGS: -D warnings
+      - name: Licence and advisory audit
+        run: |
+          cargo install cargo-deny --version 0.18.3 --locked
+          cargo deny check
+
+  prototype:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 reference/python/test_twitchlib.py
+      - run: python3 reference/python/test_chat.py
+      - name: The differential fixtures are what the prototype produces today
+        run: |
+          python3 fixtures/gen-expected.py
+          git diff --exit-code -- fixtures/expected

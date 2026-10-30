@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Twitch, no adverts</title>
+<link rel="icon" href="/static/icon.svg">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="/">Twitch <span>no adverts</span></a>
+  <form id="open">
+    <input id="name" placeholder="channel name" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Channel name">
+    <button>Watch</button>
+  </form>
+  <span id="exit" class="lamp" title="">checking</span>
+</header>
+
+<main id="watch" hidden>
+  <div class="stage">
+    <div class="screen">
+      <video id="video" controls playsinline autoplay></video>
+      <div id="notice" class="notice" hidden></div>
+    </div>
+    <div class="bar">
+      <strong id="who"></strong>
+      <span id="what"></span>
+      <span class="grow"></span>
+      <label>Quality <select id="quality"></select></label>
+      <button id="follow" type="button"></button>
+      <button id="chat-toggle" type="button">Chat</button>
+      <button id="copy" type="button" title="Copy the link for mpv, VLC or a TV">Copy link</button>
+    </div>
+  </div>
+  <iframe id="chat" title="Chat" hidden></iframe>
+</main>
+
+<section id="lists">
+  <h2>Following</h2>
+  <div id="follows" class="grid"></div>
+  <p id="none" class="hint" hidden>Nobody yet. Type a channel name above, watch it, then press Follow.</p>
+  <h2>Most watched now</h2>
+  <div id="top" class="grid"></div>
+</section>
+
+<footer>
+  <span id="totals"></span>
+  <a href="/api/status">status</a>
+</footer>
+
+<script src="/static/hls.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

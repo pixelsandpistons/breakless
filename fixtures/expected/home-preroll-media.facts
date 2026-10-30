@@ -1,0 +1,9 @@
+seq=0
+target=5
+segments=3
+ads=preroll|1|29
+added=0
+cut=3
+client_side=false
+odd_titles=
+odd_classes=
