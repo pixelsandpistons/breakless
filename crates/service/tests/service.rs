@@ -24,6 +24,11 @@ impl Rig {
     }
 
     async fn with_fake(fake: FakeTwitch, proxies: &[&str]) -> Self {
+        Self::with_fake_rest(fake, proxies, 30).await
+    }
+
+    /// `exit_rest` is the seconds a failed exit is left alone; the service's default is 30.
+    async fn with_fake_rest(fake: FakeTwitch, proxies: &[&str], exit_rest: u64) -> Self {
         let data = std::env::temp_dir().join(format!(
             "breakless-test-{}",
             breakless::twitch::random_u64()
@@ -39,6 +44,7 @@ impl Rig {
             usher_url: fake.usher_url(),
             irc_url: fake.irc_url(),
             emotes_url: fake.emotes_url(),
+            exit_rest,
         };
         let app = Arc::new(App::new(config).unwrap());
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -342,6 +348,40 @@ async fn an_exit_that_goes_down_during_a_session_sends_the_playlist_home() {
     assert_eq!(status["totals"]["sessions"]["exit"], 1);
     assert_eq!(status["exit"]["usable"], false);
     assert_ne!(status["exit"]["last_error"].as_str().unwrap(), "");
+}
+
+#[tokio::test]
+async fn an_exit_that_comes_back_after_its_rest_gets_the_session_again() {
+    let fake = FakeTwitch::start().await;
+    let channel = fake.channel("exit_back");
+    channel.segment_interval(std::time::Duration::ZERO);
+    channel.country("IS");
+    let proxy = fake.proxy().await;
+    let rig = Rig::with_fake_rest(fake, &[&proxy.url()], 1).await;
+    let path = "/live/exit_back/chunked.m3u8";
+    let (code, text) = rig.get(path).await;
+    assert_eq!(code, 200, "{text}");
+    proxy.down();
+    // The playlist is refreshed from Twitch at most every 0.9 s; wait that out before the exit
+    // is asked and found dead.
+    tokio::time::sleep(std::time::Duration::from_millis(950)).await;
+    let (code, text) = rig.get(path).await;
+    assert_eq!(code, 200, "{text}");
+    let down = rig.json("/api/status").await;
+    assert_eq!(down["watching"][0]["from"], "home");
+    assert_eq!(down["exit"]["usable"], false);
+    proxy.up();
+    // The exit rests 1 s in this rig; the next refresh after that goes back through it.
+    tokio::time::sleep(std::time::Duration::from_millis(1200)).await;
+    let (code, text) = rig.get(path).await;
+    assert_eq!(code, 200, "{text}");
+    assert_eq!(urls(&text).len(), 5);
+    let back = rig.json("/api/status").await;
+    assert_eq!(back["watching"][0]["from"], "exit");
+    assert_eq!(back["watching"][0]["country"], "IS");
+    assert_eq!(back["exit"]["usable"], true);
+    assert_eq!(back["totals"]["sessions"]["exit"], 2);
+    assert_eq!(back["totals"]["sessions"]["home"], 1);
 }
 
 #[tokio::test]

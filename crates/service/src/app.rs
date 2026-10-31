@@ -107,8 +107,13 @@ pub struct App {
 impl App {
     /// Builds the HTTP clients; fails if a proxy or the chat address does not parse.
     pub fn new(config: Config) -> Result<Self, String> {
-        let twitch = Twitch::new(&config.proxies(), &config.gql_url, &config.usher_url)
-            .map_err(|e| e.to_string())?;
+        let twitch = Twitch::new(
+            &config.proxies(),
+            &config.gql_url,
+            &config.usher_url,
+            Duration::from_secs(config.exit_rest),
+        )
+        .map_err(|e| e.to_string())?;
         let store = Store::new(&config.data);
         let target = IrcTarget::parse(&config.irc_url)
             .ok_or_else(|| format!("not a chat address: {}", config.irc_url))?;

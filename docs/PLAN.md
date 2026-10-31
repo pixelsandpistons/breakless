@@ -25,8 +25,8 @@ reasoning that matters is here.
 - [x] Master and media playlists, advert marks, unknown-mark reporting, `Timeline`.
 - [x] Chat: IRC line and tag parsing, events, the room's rules, the numbered log, emote list
       readers and merge ([task 1](tasks/01-chat-formats.md), done).
-- [ ] Twitch request and response types for the GraphQL calls the service makes (token, who is live,
-      most watched).
+- [x] The GraphQL calls the service makes (token, who is live, most watched): `gql` builds the
+      request bodies and reads the answers as the prototype does, compared with it on canned answers.
 
 ### 2. Service
 
@@ -49,8 +49,8 @@ The axum binary. Contract: every route and JSON field listed at the top of
       reports its country and cluster; an exit that goes down during a session falls back to home;
       a dropped media request is retried without reopening the session; a dropped token request
       through the exit is asked once more and the session opens there.
-- [ ] Return to the exit after recovery: needs a configurable exit rest interval so the test does
-      not wait for the service's 30 s `EXIT_REST` constant.
+- [x] Return to the exit after its rest. The rest is `--exit-rest` (hidden, 30 s by default); the
+      test runs the service with 1 s and sees the session go home and come back.
 - [x] A run against real Twitch from a home line (2026-10-30: the most-watched channel opened from
       Canada with 6 qualities; a 102 s mid-roll was cut, 7 segments, playlist held at 15; no unknown
       titles or classes).

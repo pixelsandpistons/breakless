@@ -38,6 +38,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   fakes. Adds timed channel windows, advert-break controls, dropped connections, per-channel
   statuses and countries, request records with `Via`, and an HTTP exit proxy with down/up
   controls. The service uses it only as a dev-dependency.
+- `breakless-formats::gql`: the GraphQL request bodies and the reading of their answers (a
+  channel's token, who is live, the most watched), as the prototype does them; the service and
+  `valid_login` now come from here.
+- `--exit-rest` (hidden; `BREAKLESS_EXIT_REST`, 30 s): how long a failed exit is left alone. A
+  service test runs with 1 s and proves the session goes home and comes back to the exit.
 - Four service tests against the fake: live exit routing and country, fallback when an active
   exit goes down, a dropped media request retried in the same session, and a dropped token request
   retried through the exit before the session opens.

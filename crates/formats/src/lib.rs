@@ -9,10 +9,12 @@
 //! - [`attrs`]: the attribute-list and date parsing the two above share.
 //! - [`chat`]: IRC lines, the events a reader sees, the room's rules, the numbered log.
 //! - [`emotes`]: the three emote providers' lists and how they merge.
+//! - [`gql`]: the GraphQL requests the service sends and the reading of their answers.
 
 pub mod attrs;
 pub mod chat;
 pub mod emotes;
+pub mod gql;
 pub mod playlist;
 pub mod timeline;
 

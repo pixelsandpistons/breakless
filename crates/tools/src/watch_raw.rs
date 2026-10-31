@@ -95,7 +95,12 @@ fn shorten(line: &str) -> String {
 /// Runs the watch; returns the exit code.
 pub async fn run(args: Args) -> i32 {
     let proxies: Vec<String> = args.proxy.iter().cloned().collect();
-    let t = match Twitch::new(&proxies, &args.gql_url, &args.usher_url) {
+    let t = match Twitch::new(
+        &proxies,
+        &args.gql_url,
+        &args.usher_url,
+        breakless::twitch::EXIT_REST,
+    ) {
         Ok(t) => t,
         Err(e) => {
             eprintln!("cannot build the HTTP client: {e}");

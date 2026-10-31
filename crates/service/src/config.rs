@@ -60,6 +60,10 @@ pub struct Config {
     /// A base that replaces `https://` in the emote providers' addresses. Only tests set it.
     #[arg(long, env = "BREAKLESS_EMOTES_URL", default_value = "", hide = true)]
     pub emotes_url: String,
+
+    /// Seconds an exit is left alone after it failed before it is tried again. Only tests change it.
+    #[arg(long, env = "BREAKLESS_EXIT_REST", default_value = "30", hide = true)]
+    pub exit_rest: u64,
 }
 
 impl Config {

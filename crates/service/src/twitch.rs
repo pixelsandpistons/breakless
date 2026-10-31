@@ -5,12 +5,13 @@ use std::collections::BTreeMap;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-use breakless_formats::{CLIENT_ID, TOKEN_QUERY};
+pub use breakless_formats::gql::{Live, Top};
+use breakless_formats::{CLIENT_ID, gql};
 use serde_json::{Value, json};
 
 const UA: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
 const TIMEOUT: Duration = Duration::from_secs(10);
-/// Seconds an exit is left alone after it failed.
+/// How long an exit is left alone after it failed, unless `--exit-rest` says otherwise.
 pub const EXIT_REST: Duration = Duration::from_secs(30);
 
 /// A failed request. `code` is the HTTP status, or 0 when nothing came back.
@@ -107,11 +108,12 @@ pub struct Exit {
     /// The proxy's host, for logs and status. Never the whole address: it may carry a password.
     pub label: String,
     via: Via,
+    rest: Duration,
     state: Mutex<ExitState>,
 }
 
 impl Exit {
-    fn new(url: &str) -> Result<Self, reqwest::Error> {
+    fn new(url: &str, rest: Duration) -> Result<Self, reqwest::Error> {
         let label = url.split("://").nth(1).unwrap_or(url);
         let label = label
             .rsplit('@')
@@ -122,11 +124,12 @@ impl Exit {
         Ok(Self {
             label,
             via: Via::build(Some(url))?,
+            rest,
             state: Mutex::new(ExitState::default()),
         })
     }
 
-    /// `true` unless it failed within the last [`EXIT_REST`].
+    /// `true` unless it failed within its rest.
     pub fn usable(&self) -> bool {
         let s = self
             .state
@@ -135,18 +138,18 @@ impl Exit {
         s.down_until.is_none_or(|t| Instant::now() >= t)
     }
 
-    /// Records a failure: the exit rests for [`EXIT_REST`].
+    /// Records a failure: the exit rests.
     pub fn failed(&self, why: &str) {
         let mut s = self
             .state
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        s.down_until = Some(Instant::now() + EXIT_REST);
+        s.down_until = Some(Instant::now() + self.rest);
         s.last_error = format!("{} {}", now_text(), truncate(why, 120));
         tracing::warn!(
             "exit {} failed, using the home line for {}s: {}",
             self.label,
-            EXIT_REST.as_secs(),
+            self.rest.as_secs(),
             truncate(why, 120)
         );
     }
@@ -185,47 +188,27 @@ pub struct Twitch {
     direct: Via,
     /// In the order they are tried.
     pub exits: Vec<Exit>,
+    rest: Duration,
     gql_url: String,
     usher_url: String,
 }
 
-/// Who is live, from the `users` query.
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct Live {
-    /// The display name.
-    pub name: String,
-    /// The stream's title.
-    pub title: String,
-    /// People watching.
-    pub viewers: u64,
-    /// The game or category.
-    pub game: String,
-}
-
-/// One of the most-watched channels.
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct Top {
-    /// The channel's name in addresses.
-    pub login: String,
-    /// The display name.
-    pub name: String,
-    /// The stream's title.
-    pub title: String,
-    /// The game or category.
-    pub game: String,
-    /// People watching.
-    pub viewers: u64,
-}
-
 impl Twitch {
-    /// Builds the clients. `proxies` are HTTP proxy addresses, in the order to try them.
-    pub fn new(proxies: &[String], gql_url: &str, usher_url: &str) -> Result<Self, reqwest::Error> {
+    /// Builds the clients. `proxies` are HTTP proxy addresses, in the order to try them; `rest`
+    /// is how long a failed one is left alone.
+    pub fn new(
+        proxies: &[String],
+        gql_url: &str,
+        usher_url: &str,
+        rest: Duration,
+    ) -> Result<Self, reqwest::Error> {
         Ok(Self {
             direct: Via::build(None)?,
             exits: proxies
                 .iter()
-                .map(|p| Exit::new(p))
+                .map(|p| Exit::new(p, rest))
                 .collect::<Result<_, _>>()?,
+            rest,
             gql_url: gql_url.to_string(),
             usher_url: usher_url.to_string(),
         })
@@ -235,6 +218,11 @@ impl Twitch {
     pub fn via(&self, exit: Option<usize>) -> &Via {
         exit.and_then(|i| self.exits.get(i))
             .map_or(&self.direct, |e| &e.via)
+    }
+
+    /// How long a failed exit is left alone.
+    pub fn rest(&self) -> Duration {
+        self.rest
     }
 
     /// The first exit that is not resting.
@@ -285,27 +273,15 @@ impl Twitch {
         Ok(text)
     }
 
-    async fn gql(&self, via: &Via, query: &str, variables: Value) -> Result<Value, Error> {
-        let body = serde_json::to_vec(&json!({"query": query, "variables": variables}))
-            .unwrap_or_default();
+    async fn gql(&self, via: &Via, body: &Value) -> Result<Value, Error> {
+        let body = serde_json::to_vec(body).unwrap_or_default();
         let headers = vec![
             ("Client-ID", CLIENT_ID.to_string()),
             ("X-Device-Id", device_id()),
             ("Content-Type", "text/plain;charset=UTF-8".to_string()),
         ];
         let text = self.http(via, &self.gql_url, Some((body, headers))).await?;
-        let out: Value = serde_json::from_str(&text)
-            .map_err(|e| Error::new(0, format!("GQL: not JSON: {e}")))?;
-        if out
-            .get("errors")
-            .is_some_and(|e| e.as_array().is_some_and(|a| !a.is_empty()))
-        {
-            return Err(Error::new(
-                0,
-                format!("GQL: {}", truncate(&out["errors"].to_string(), 300)),
-            ));
-        }
-        Ok(out.get("data").cloned().unwrap_or(Value::Null))
+        gql::data(&text).map_err(|m| Error::new(0, m))
     }
 
     /// A playback token: `(value, signature)`. `Err` with a message starting `no token` means no
@@ -318,20 +294,11 @@ impl Twitch {
         platform: &str,
     ) -> Result<(String, String), Error> {
         let data = self
-            .gql(
-                via,
-                TOKEN_QUERY,
-                json!({"login": login, "playerType": player_type, "platform": platform}),
-            )
+            .gql(via, &gql::token_request(login, player_type, platform))
             .await?;
-        let t = &data["streamPlaybackAccessToken"];
-        match (t["value"].as_str(), t["signature"].as_str()) {
-            (Some(v), Some(s)) => Ok((v.to_string(), s.to_string())),
-            _ => Err(Error::new(
-                0,
-                format!("no token for {login} as {player_type}"),
-            )),
-        }
+        gql::token(&data)
+            .map(|t| (t.value, t.signature))
+            .ok_or_else(|| Error::new(0, format!("no token for {login} as {player_type}")))
     }
 
     /// The master playlist address for a token. An unparsable usher address (only tests set
@@ -364,58 +331,20 @@ impl Twitch {
             .await
     }
 
-    /// `{login: Live}` for those of `logins` that are live now. Asked straight out.
+    /// `{login: Live}` for those of `logins` that are live now. Asked straight out; nothing is
+    /// asked when no name is valid.
     pub async fn live(&self, logins: &[String]) -> Result<BTreeMap<String, Live>, Error> {
-        if logins.is_empty() {
+        let Some(body) = gql::live_request(logins) else {
             return Ok(BTreeMap::new());
-        }
-        let q = "query($logins: [String!]) { users(logins: $logins) { login displayName \
-                 stream { title viewersCount game { displayName } } } }";
-        let data = self.gql(&self.direct, q, json!({"logins": logins})).await?;
-        let mut out = BTreeMap::new();
-        for u in data["users"].as_array().into_iter().flatten() {
-            let (Some(login), Some(s)) = (
-                u["login"].as_str(),
-                u.get("stream").filter(|s| s.is_object()),
-            ) else {
-                continue;
-            };
-            out.insert(
-                login.to_string(),
-                Live {
-                    name: u["displayName"].as_str().unwrap_or(login).to_string(),
-                    title: s["title"].as_str().unwrap_or("").to_string(),
-                    viewers: s["viewersCount"].as_u64().unwrap_or(0),
-                    game: s["game"]["displayName"].as_str().unwrap_or("").to_string(),
-                },
-            );
-        }
-        Ok(out)
+        };
+        let data = self.gql(&self.direct, &body).await?;
+        Ok(gql::live(&data))
     }
 
     /// The `n` most-watched live channels. Asked straight out.
     pub async fn top(&self, n: u32) -> Result<Vec<Top>, Error> {
-        let q = "query($n: Int!) { streams(first: $n) { edges { node { title viewersCount \
-                 broadcaster { login displayName } game { displayName } } } } }";
-        let data = self.gql(&self.direct, q, json!({"n": n})).await?;
-        let mut out = Vec::new();
-        for e in data["streams"]["edges"].as_array().into_iter().flatten() {
-            let s = &e["node"];
-            let Some(login) = s["broadcaster"]["login"].as_str() else {
-                continue;
-            };
-            out.push(Top {
-                login: login.to_string(),
-                name: s["broadcaster"]["displayName"]
-                    .as_str()
-                    .unwrap_or(login)
-                    .to_string(),
-                title: s["title"].as_str().unwrap_or("").to_string(),
-                game: s["game"]["displayName"].as_str().unwrap_or("").to_string(),
-                viewers: s["viewersCount"].as_u64().unwrap_or(0),
-            });
-        }
-        Ok(out)
+        let data = self.gql(&self.direct, &gql::top_request(n)).await?;
+        Ok(gql::top(&data))
     }
 }
 
@@ -470,7 +399,7 @@ mod tests {
 
     #[test]
     fn the_exit_label_hides_credentials() {
-        let e = Exit::new("http://user:secret@exit:8888").unwrap();
+        let e = Exit::new("http://user:secret@exit:8888", EXIT_REST).unwrap();
         assert_eq!(e.label, "exit:8888");
     }
 
@@ -482,7 +411,13 @@ mod tests {
 
     #[test]
     fn the_master_url_carries_the_token() {
-        let t = Twitch::new(&[], "http://g/", "http://u/api/channel/hls/{login}.m3u8").unwrap();
+        let t = Twitch::new(
+            &[],
+            "http://g/",
+            "http://u/api/channel/hls/{login}.m3u8",
+            EXIT_REST,
+        )
+        .unwrap();
         let url = t.master_url("SomeOne", "tok", "sig");
         assert!(url.starts_with("http://u/api/channel/hls/someone.m3u8?player=twitchweb&p="));
         assert!(url.contains("&sig=sig&token=tok"));

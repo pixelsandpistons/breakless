@@ -23,7 +23,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Serve playlists, the page and the API.
-    Serve(Config),
+    Serve(Box<Config>),
     /// Exit 0 when a running service answers `/health`. Used as the container's healthcheck.
     Health {
         /// The service's health address.
@@ -41,7 +41,7 @@ enum Command {
 fn main() {
     tracing_subscriber::fmt().with_target(false).init();
     match Cli::parse().command {
-        Command::Serve(config) => serve(config),
+        Command::Serve(config) => serve(*config),
         Command::Health { url } => std::process::exit(i32::from(!healthy(&url))),
         Command::Status { url } => match fetch(&url) {
             Some((200, body)) => println!("{body}"),

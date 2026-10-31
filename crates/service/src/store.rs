@@ -64,10 +64,7 @@ impl Store {
     }
 }
 
-/// A channel name as Twitch spells it in addresses.
-pub fn valid_login(name: &str) -> bool {
-    (2..=25).contains(&name.len()) && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
-}
+pub use breakless_formats::gql::valid_login;
 
 #[cfg(test)]
 mod tests {

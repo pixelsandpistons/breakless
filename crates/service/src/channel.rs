@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use tokio::sync::Mutex;
 
 use crate::app::App;
-use crate::twitch::{self, Error, truncate};
+use crate::twitch::{Error, truncate};
 
 /// Where a session's playlists are asked from.
 pub const EXIT: &str = "exit";
@@ -269,7 +269,7 @@ impl Channel {
                     && twitch.first_usable_exit().is_some()
                     && state.retry_exit.is_none_or(|at| now >= at)
                 {
-                    state.retry_exit = Some(now + twitch::EXIT_REST);
+                    state.retry_exit = Some(now + twitch.rest());
                     state.session = None;
                 }
                 match &state.session {
