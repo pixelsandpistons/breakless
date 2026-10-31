@@ -15,7 +15,8 @@ reasoning that matters is here.
   chat line, event and emote-list code, compared with the prototype's JSON.
 - The service serves every route of the prototype, chat and emotes included, and has run against
   real Twitch from a home line and through an exit (the phase 2 list below says what was seen).
-- The tools except `upstream` are ported. The container image and the releases are not started.
+- The tools except `upstream` are ported. The container image builds and runs; the release
+  workflow is written and has not run on a tag.
 
 ## Phases
 
@@ -71,9 +72,12 @@ stay as they are so existing scripts that parse them keep working.
 
 ### 4. Container and releases ([task 3](tasks/03-container-and-release.md))
 
-Multi-stage image from `rust:1.99.1-alpine` to `scratch`, non-root, a `health` subcommand for the
-healthcheck. A release workflow on `v*` tags: static binaries for x86_64 and aarch64 Linux, the
-image on GHCR, checksums, the changelog section as release notes.
+- [x] Multi-stage image from `rust:1.99.1-alpine` to `scratch`, non-root, the `health` subcommand
+      as the healthcheck, both binaries inside (17.6 MB on 2026-10-30).
+- [x] A release workflow on `v*` tags: static binaries for x86_64 and aarch64 Linux (each on its
+      own runner, nothing cross-compiled), the image on GHCR for both, checksums, the changelog
+      section as release notes. Written; not yet run on a tag.
+- [x] `deploy/docker-compose.image.yml`: the compose file with the published image.
 
 ### 5. Cutover and 1.0
 

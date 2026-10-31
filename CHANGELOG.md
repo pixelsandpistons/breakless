@@ -32,6 +32,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   channel name).
 - The Python prototype as `reference/python/`, the page as `web/`, a generic compose file as
   `deploy/`, the pinned build image under `tools/build-image/` and the `tools/cargo.sh` wrapper.
+- `Dockerfile`: both binaries built statically on the pinned Alpine image and shipped on `scratch`
+  with the page and the trust roots, as user 65532, with `breakless health` as the healthcheck.
+  `deploy/docker-compose.image.yml` runs that image; `.github/workflows/release.yml` builds the
+  binaries for x86_64 and aarch64 Linux on a `v*` tag, pushes the image to GHCR and makes the
+  release with the checksums and the changelog section.
 - The plan (`docs/PLAN.md`), the architecture notes and the first contributor tasks.
 
 ### Changed, relative to the prototype as it ran before this repository

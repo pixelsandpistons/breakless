@@ -7,8 +7,8 @@ playlists. Self-hosted, written in Rust, made with AI.
 > [`reference/python/`](reference/python/), live at the maintainer's home since 4 October 2026. The
 > Rust rewrite in [`crates/`](crates/) is in progress: the playlist parser and the rebuilt timeline
 > are done and tested against the prototype's output, and the service serves playlists against a
-> fake Twitch and, once each, against real Twitch from a home line and through an exit; chat and the
-> tools are built; the container image and an hour with a real player are not done.
+> fake Twitch and, once each, against real Twitch from a home line and through an exit; chat, the
+> tools and the container image are built; an hour with a real player is not done.
 > See [Status](#status).
 
 ## What it does
@@ -45,13 +45,13 @@ page: a channel list, a player, read-only chat with BetterTTV, FrankerFaceZ and 
 | `breakless` service (Rust) | Playlists, sessions, exits with fallback, status, the channel list, follows, the page: built, 10 tests against a fake Twitch in `crates/service/tests/`. Same routes and fields as the prototype. Run once against real Twitch from a home line on 2026-10-30: a real mid-roll of 102 s was cut (7 segments) with no unknown marks; through an exit in Iceland the same day: a 10-minute soak of six busy channels passed 1,870 segments with nothing cut, no stalls and no errors, and ignored 12 client-side advert requests. The page in headless Chromium against it on a home line: 1080p video playing after a real 30 s pre-roll was cut (16 segments). No player has watched it for an hour yet |
 | Chat and emotes (Rust) | Built: guest chat rooms over TLS with the prototype's long poll, the three emote providers merged and cached. The prototype's 18 offline tests are ported (12 on the parsing in `breakless-formats`, 4 against a fake chat server and fake providers in the service); two compare the JSON with what `chat.py` produces, field for field. Run once against real Twitch from a home line on 2026-10-30: joined the most-watched channel's chat, messages arrived with their emote positions, 131 emote words from the three providers with no errors |
 | Tools (Rust, `breakless-tools`) | `probe` built; same table and last lines as the prototype's, run once from a home line (3 of 3 pre-rolls, as expected there). `soak`, `watch-raw` and `capture` built (`capture`'s scrub is tested against the fixtures; `soak` and `watch-raw` drive a running service and have no automated test). `upstream` not started ([task 02](docs/tasks/02-upstream-watch.md)) |
-| Container image, releases | Not started |
+| Container image, releases | `Dockerfile` builds both binaries statically and ships them on `scratch` with the page and the trust roots: 17.6 MB, non-root, the healthcheck is `breakless health`. Built and checked on x86_64 on 2026-10-30. The release workflow (`v*` tags: binaries for x86_64 and aarch64, the image on GHCR, checksums, the changelog section as notes) is written and not yet run on a tag |
 | YouTube | Research only; see [the plan](docs/PLAN.md#youtube) |
 
 The plan, phase by phase, is [docs/PLAN.md](docs/PLAN.md). Tasks that are ready for a contributor
 (human or AI) are in [docs/tasks/](docs/tasks/).
 
-## Run the prototype
+## Run it
 
 Needs Docker. Copy [`deploy/.env.example`](deploy/.env.example) to `deploy/.env`, fill in your VPN
 provider's settings as gluetun names them, pick a country, then:
@@ -62,6 +62,16 @@ docker compose up -d
 curl -s http://127.0.0.1:8080/api/status
 mpv http://127.0.0.1:8080/live/CHANNEL.m3u8
 ```
+
+That compose file runs the Python prototype from the source tree. `deploy/docker-compose.image.yml`
+is the same with the Rust service from `ghcr.io/pixelsandpistons/breakless` instead; no image is
+published there until the first release, so until then build one yourself:
+
+```sh
+docker build -t breakless:dev .
+```
+
+and put `breakless:dev` in place of the `ghcr.io` name.
 
 `/api/status` says which country Twitch placed the request in (`exit.country`) and counts every
 advert break met and cut. Leave `TWITCH_PROXY` empty to run without a VPN: adverts are then cut and the

@@ -1,6 +1,8 @@
 # Task 03: the container image and the release workflow
 
-Status: open.
+Status: done except the last acceptance line: the `Dockerfile`, `.dockerignore`,
+`deploy/docker-compose.image.yml` and `.github/workflows/release.yml` are in the tree and the image
+checks below passed on x86_64; the workflow has not yet run on a tag. The brief stays as the record.
 
 ## Goal
 

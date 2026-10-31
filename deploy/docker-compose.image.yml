@@ -1,0 +1,58 @@
+# Breakless from the published image, with a gluetun exit. Copy .env.example to .env first.
+#
+#   exit        gluetun with its HTTP proxy on, exiting in a country where Twitch sells no adverts.
+#               Only `breakless` can reach the proxy; nothing rides this network and no port is published.
+#   breakless   the service, from ghcr.io. Asks Twitch for playlists through `exit`, cuts adverts,
+#               serves playlists and the page on port 8080. The video goes from Twitch straight to the player.
+#
+# The service has no sign-in: keep port 8080 on your LAN or behind your own reverse proxy (SECURITY.md).
+# To run the Python prototype from the source tree instead, use docker-compose.yml beside this file.
+services:
+  exit:
+    image: qmcgaw/gluetun:v3
+    container_name: breakless-exit
+    restart: unless-stopped
+    cap_add: [NET_ADMIN]
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    security_opt:
+      - no-new-privileges:true
+    networks: [egress]
+    environment:
+      TZ: ${TZ:-UTC}
+      VPN_SERVICE_PROVIDER: ${VPN_SERVICE_PROVIDER}
+      VPN_TYPE: ${VPN_TYPE:-openvpn}
+      OPENVPN_USER: ${OPENVPN_USER:-}
+      OPENVPN_PASSWORD: ${OPENVPN_PASSWORD:-}
+      WIREGUARD_PRIVATE_KEY: ${WIREGUARD_PRIVATE_KEY:-}
+      WIREGUARD_ADDRESSES: ${WIREGUARD_ADDRESSES:-}
+      SERVER_COUNTRIES: ${SERVER_COUNTRIES:-Iceland}
+      HTTPPROXY: "on"
+      HTTPPROXY_STEALTH: "on"
+      BLOCK_MALICIOUS: "off"
+      HEALTH_VPN_DURATION_INITIAL: 60s
+      VERSION_INFORMATION: "off"
+
+  breakless:
+    image: ghcr.io/pixelsandpistons/breakless:${BREAKLESS_VERSION:-latest}
+    container_name: breakless
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    # the image runs as 65532; set your own user so the data folder is yours
+    user: "${PUID:-1000}:${PGID:-1000}"
+    environment:
+      TZ: ${TZ:-UTC}
+      # empty: ask Twitch straight out and only cut the adverts (the picture then pauses for each break)
+      TWITCH_PROXY: ${TWITCH_PROXY:-http://exit:8888}
+      # the name you open the page under; Twitch's chat frame needs it to match
+      TWITCH_HOST: ${TWITCH_HOST:-localhost:8080}
+    volumes:
+      - ${DATA:-./data}:/data
+    networks: [default, egress]
+    ports:
+      - "${BIND:-127.0.0.1}:8080:8080"
+
+networks:
+  egress:

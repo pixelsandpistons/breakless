@@ -1,0 +1,8 @@
+target/
+reference/
+fixtures/
+docs/
+deploy/
+tools/
+.git/
+.github/
