@@ -32,7 +32,7 @@ plus the files it names, pasted or attached.
 | [02](02-upstream-watch.md) | The upstream watcher as `breakless-tools upstream` | done | |
 | [03](03-container-and-release.md) | Dockerfile to `scratch`, release workflow to GHCR | done; the workflow awaits its first tag | |
 | [04](04-fake-twitch.md) | A fake Twitch for the service's tests | done | |
-| [05](05-youtube-probe.md) | The YouTube live measurement probe | nothing | 1 to 2 days, plus runs on a home line |
+| [05](05-youtube-probe.md) | The YouTube live measurement probe | built; the live run is the maintainer's | |
 | [06](06-docs-review.md) | Slop and accuracy review of every document | the others landing | half a day |
 
 The maintainer's own work, not up for grabs: the service crate (sessions, exits, routes, chat rooms)

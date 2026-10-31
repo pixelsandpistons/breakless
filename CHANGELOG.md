@@ -41,6 +41,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 - Four service tests against the fake: live exit routing and country, fallback when an active
   exit goes down, a dropped media request retried in the same session, and a dropped token request
   retried through the exit before the session opens.
+- `breakless-tools youtube-probe`: measures live HLS access for four Innertube clients, counts
+  playlist observations and HTTP failures, and saves scrubbed captures only with `--capture`.
+  Offline tests cover the client requests, counting and scrubbing; the home-line run is the
+  maintainer's. The run template is `docs/YOUTUBE-Y0.md`.
 - The Python prototype as `reference/python/`, the page as `web/`, a generic compose file as
   `deploy/`, the pinned build image under `tools/build-image/` and the `tools/cargo.sh` wrapper.
 - `Dockerfile`: both binaries built statically on the pinned Alpine image and shipped on `scratch`

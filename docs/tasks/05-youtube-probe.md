@@ -1,7 +1,7 @@
 # Task 05: the YouTube live measurement probe
 
-Status: open. This is phase Y0 of [the plan](../PLAN.md#youtube). Nothing about YouTube is built
-until this has run and been read.
+Status: built; the live run is the maintainer's. This is phase Y0 of [the plan](../PLAN.md#youtube).
+No YouTube service support is built until this has run and been read.
 
 ## Goal
 
