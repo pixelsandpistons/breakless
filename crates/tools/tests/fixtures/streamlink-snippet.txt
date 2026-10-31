@@ -1,0 +1,10 @@
+# Synthetic extraction input.
+CLIENT_ID = "kimne78kx3ncx6brgo4mv6wki5h1ko"
+def _is_daterange_ad(daterange):
+    return classname == "twitch-stitched-ad" or identifier.startswith("stitched-ad-")
+
+
+def _is_segment_ad(title):
+    return "Amazon" in title
+
+

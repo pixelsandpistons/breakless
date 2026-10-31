@@ -1,0 +1,39 @@
+{
+ "facts": {
+  "streamlink advert marks": [
+   "streamlink:class:twitch-stitched-ad",
+   "streamlink:id:stitched-ad-",
+   "streamlink:title:Amazon"
+  ],
+  "streamlink client id": "kimne78kx3ncx6brgo4mv6wki5h1ko",
+  "vaft advert marks": [
+   "stitched-ad",
+   "twitch-stitched"
+  ],
+  "vaft advert segment addresses": [
+   "/adsquared/",
+   "/_404/",
+   "/processing"
+  ],
+  "vaft backup token kinds": [
+   "site",
+   "embed"
+  ],
+  "vaft classes that are not adverts": [
+   "twitch-session",
+   "twitch-stream-source",
+   "twitch-ad-quartile",
+   "twitch-assignment"
+  ],
+  "vaft client id": "kimne78kx3ncx6brgo4mv6wki5h1ko",
+  "vaft version": "99"
+ },
+ "files": {
+  "ryanbr-full-list.md": "0dca7ed8e175f2ab",
+  "ryanbr-issues.md": "0dca7ed8e175f2ab",
+  "streamlink-twitch-plugin.py": "e51cee42bc0fcfa5",
+  "ttv-lol-pro-README.md": "0dca7ed8e175f2ab",
+  "vaft.user.js": "8273eb5b43045a40"
+ },
+ "looked": "2000-01-01 00:00"
+}

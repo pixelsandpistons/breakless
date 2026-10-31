@@ -1,11 +1,11 @@
 //! `breakless-tools`: the measuring tools beside the service.
 //!
-//! `probe`, `soak`, `watch-raw` and `capture` are ports of the prototype's scripts. `upstream` is
-//! still to come (`docs/tasks/02-upstream-watch.md`).
+//! `probe`, `soak`, `watch-raw`, `capture` and `upstream` are ports of the prototype's scripts.
 
 mod capture;
 mod probe;
 mod soak;
+mod upstream;
 mod watch_raw;
 
 use clap::{Parser, Subcommand};
@@ -31,6 +31,11 @@ enum Command {
     WatchRaw(watch_raw::Args),
     /// Save a scrubbed master and media playlist pair as a fixture.
     Capture(capture::Args),
+    /// Compare upstream projects' advert marks, client ids and token kinds with ours.
+    ///
+    /// The folder comes from `--dir`, then `BREAKLESS_UPSTREAM_DIR`, then `upstream` relative to the
+    /// current working directory.
+    Upstream(upstream::Args),
 }
 
 fn main() {
@@ -42,6 +47,7 @@ fn main() {
             Command::Soak(args) => soak::run(args).await,
             Command::WatchRaw(args) => watch_raw::run(args).await,
             Command::Capture(args) => capture::run(args).await,
+            Command::Upstream(args) => upstream::run(args).await,
         }
     });
     std::process::exit(code);

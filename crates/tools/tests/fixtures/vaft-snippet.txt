@@ -1,0 +1,10 @@
+// Synthetic extraction input.
+// @version 99
+scope.AdSignifiers = [
+    'stitched-ad', // 'ignored-comment'
+    "twitch-stitched"
+];
+scope.KnownNonAdSignifiers = ['twitch-session', 'twitch-stream-source', 'twitch-ad-quartile', 'twitch-assignment'];
+scope.AdSegmentURLPatterns = ['/adsquared/', '/_404/', '/processing'];
+scope.BackupPlayerTypes = ['site', 'embed'];
+scope.ClientID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';

@@ -15,7 +15,7 @@ reasoning that matters is here.
   chat line, event and emote-list code, compared with the prototype's JSON.
 - The service serves every route of the prototype, chat and emotes included, and is what runs at
   the maintainer's home since 2026-10-31 (the phase 2 list below says what was measured first).
-- The tools except `upstream` are ported. The container image builds and runs; the release
+- The five tools are ported. The container image builds and runs; the release
   workflow is written and has not run on a tag.
 
 ## Phases
@@ -71,7 +71,7 @@ stay as they are so existing scripts that parse them keep working.
 - [x] `probe` (the health check's `clean / answered` and `Twitch saw us in` lines).
 - [x] `soak` (the table and totals line of the prototype's).
 - [x] `watch-raw`, `capture`.
-- [ ] `upstream` ([task 2](tasks/02-upstream-watch.md)).
+- [x] `upstream` ([task 2](tasks/02-upstream-watch.md)).
 
 ### 4. Container and releases ([task 3](tasks/03-container-and-release.md))
 

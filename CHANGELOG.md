@@ -30,6 +30,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 - `breakless-tools watch-raw` and `capture`: follow a channel's playlist as Twitch sends it, and
   save a scrubbed master and media pair as a fixture (address, tokens, long paths, session ids,
   channel name).
+- `breakless-tools upstream`: fetches the five watched sources, falls back to saved copies, and
+  preserves the prototype’s reports, exit codes and `upstream-state.json`. `--offline` compares
+  without downloading or writing state; the folder comes from `--dir`, `BREAKLESS_UPSTREAM_DIR`,
+  or `upstream` under the current working directory.
 - The Python prototype as `reference/python/`, the page as `web/`, a generic compose file as
   `deploy/`, the pinned build image under `tools/build-image/` and the `tools/cargo.sh` wrapper.
 - `Dockerfile`: both binaries built statically on the pinned Alpine image and shipped on `scratch`

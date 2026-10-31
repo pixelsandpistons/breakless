@@ -1,0 +1,1 @@
+Synthetic watcher input; no facts are extracted from this file.

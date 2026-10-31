@@ -1,10 +1,12 @@
 # Task 02: the upstream watcher as `breakless-tools upstream`
 
-Status: open.
+Status: done. Accepted on 2026-10-31: on the five real sources saved since 2026-10-10, offline, online and on a
+copy edited to change a digest, a fact and add a mark, stdout, exit code, the downloaded files and
+`upstream-state.json` matched the Python's byte for byte except the minute in `looked`.
 
 ## Goal
 
-Port `reference/python/upstream.py` to Rust as the `upstream` subcommand of a new
+Port `reference/python/upstream.py` to Rust as the `upstream` subcommand of the existing
 `crates/tools` binary (`breakless-tools`), keeping its output lines and exit code so the weekly
 routine in `docs/PLAN.md` does not change.
 
@@ -20,6 +22,8 @@ routine in `docs/PLAN.md` does not change.
 
 - Downloads the five sources into a folder (`--dir`, default `upstream/`, which `.gitignore` lists)
   with a 30 s timeout, refuses a body under 500 bytes, and on failure uses the copy already there.
+- The folder comes from `--dir`, then `BREAKLESS_UPSTREAM_DIR`, then `upstream` relative to the
+  current working directory.
 - `--offline` compares the copies without downloading and does not write the state file.
 - Prints the one-line summary, `changed since the last look: ...` per file whose digest changed,
   `was:`/`now:` pairs for facts that changed, then `NEW` and `GONE` lines, then either
@@ -28,8 +32,10 @@ routine in `docs/PLAN.md` does not change.
 
 ## Dependencies
 
-`reqwest` (blocking feature is acceptable here) with `rustls-tls`, `regex`, `serde_json`, `sha2`,
-`clap` with `derive`. All MIT or Apache-2.0. Pin them; note each in the pull request.
+Use the existing async `reqwest`, `serde`, `serde_json` and `clap` dependencies. Added dependencies:
+`regex` 1.12.3 (MIT or Apache-2.0) for the prototype’s extraction patterns, `sha2` 0.10.9 (MIT or
+Apache-2.0) for SHA-256, and `jiff` 0.2.24 (MIT) for the machine-local `looked` timestamp. The standard
+library and existing direct dependencies do not provide these operations. The added versions are pinned.
 
 ## Accepted when
 
