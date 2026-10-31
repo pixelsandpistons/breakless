@@ -13,8 +13,8 @@ reasoning that matters is here.
 - `breakless-formats` parses the playlists and rebuilds the timeline exactly as the prototype does,
   proven by `crates/formats/tests/differential.rs` against `fixtures/expected/`; it also holds the
   chat line, event and emote-list code, compared with the prototype's JSON.
-- The service serves every route of the prototype, chat and emotes included, and has run against
-  real Twitch from a home line and through an exit (the phase 2 list below says what was seen).
+- The service serves every route of the prototype, chat and emotes included, and is what runs at
+  the maintainer's home since 2026-10-31 (the phase 2 list below says what was measured first).
 - The tools except `upstream` are ported. The container image builds and runs; the release
   workflow is written and has not run on a tag.
 
@@ -56,7 +56,10 @@ The axum binary. Contract: every route and JSON field listed at the top of
 - [x] The page in headless Chromium against the Rust service (`reference/python/test_page.mjs`,
       home line, 2026-10-30): the player attached, a real 30 s pre-roll was cut and 1080p video
       played after it.
-- [ ] A player on the Rust service for an hour, through the exit.
+- [x] A player on the Rust service for an hour, through the exit (2026-10-31, Iceland): the page in
+      headless Chromium on the most-watched channel for 3,600 s at 1080p with no console errors,
+      while `breakless-tools soak` watched it and four more channels: 9,074 segments passed, 0 cut,
+      0 s stalled, 0 errors, 5 exit sessions and no fallback to home, no unknown marks.
 - [ ] Behind a flag: pass `#EXT-X-TWITCH-PREFETCH` lines through when not in a break (2 to 4 s less
       delay). Measure before enabling.
 
@@ -81,9 +84,10 @@ stay as they are so existing scripts that parse them keep working.
 
 ### 5. Cutover and 1.0
 
-The maintainer runs the Rust service in place of the prototype for a week with the same checks (the
-probe through the exit, a 25-minute soak, the page in a browser, a television). Then `1.0.0`, and
-`reference/python/` moves to a tag and leaves the tree.
+- [x] The Rust service runs in place of the prototype at the maintainer's home (since 2026-10-31,
+      from a locally built image of the `Dockerfile`).
+- [ ] A week there with the same checks (the probe through the exit, a 25-minute soak, the page in a
+      browser, a television). Then `1.0.0`, and `reference/python/` moves to a tag and leaves the tree.
 
 ### 6. After 1.0, in order of value
 
