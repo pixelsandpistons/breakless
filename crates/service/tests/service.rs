@@ -20,6 +20,10 @@ struct Rig {
 impl Rig {
     async fn start(proxies: &[&str]) -> Self {
         let fake = FakeTwitch::start().await;
+        Self::with_fake(fake, proxies).await
+    }
+
+    async fn with_fake(fake: FakeTwitch, proxies: &[&str]) -> Self {
         let data = std::env::temp_dir().join(format!(
             "breakless-test-{}",
             breakless::twitch::random_u64()
@@ -257,6 +261,165 @@ async fn a_dead_exit_sends_the_session_home_and_shows_in_status() {
     assert_eq!(status["totals"]["sessions"]["home"], 1);
     assert_eq!(status["totals"]["sessions"]["exit"], 0);
     assert_eq!(status["exits"].as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn a_live_exit_carries_playlists_and_reports_the_country_twitch_saw() {
+    let fake = FakeTwitch::start().await;
+    let channel = fake.channel("live_exit");
+    channel.segment_interval(std::time::Duration::ZERO);
+    channel.country("IS");
+    let proxy = fake.proxy().await;
+    let rig = Rig::with_fake(fake, &[&proxy.url()]).await;
+    let (code, text) = rig.get("/live/live_exit/chunked.m3u8").await;
+    assert_eq!(code, 200, "{text}");
+    assert_eq!(urls(&text).len(), 5);
+    let records = channel.requests();
+    let playlists: Vec<_> = records
+        .iter()
+        .filter(|request| {
+            request.uri.starts_with("/api/channel/hls/") || request.uri.starts_with("/media/")
+        })
+        .map(|request| {
+            (
+                request.method.as_str(),
+                request.uri.split('?').next().unwrap(),
+                request.via.as_deref(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        playlists,
+        [
+            (
+                "GET",
+                "/api/channel/hls/live_exit.m3u8",
+                Some("1.1 fake-twitch")
+            ),
+            (
+                "GET",
+                "/media/live_exit/chunked.m3u8",
+                Some("1.1 fake-twitch")
+            )
+        ]
+    );
+    let status = rig.json("/api/status").await;
+    assert_eq!(status["exit"]["usable"], true);
+    assert_eq!(status["exit"]["country"], "IS");
+    assert_eq!(status["exit"]["cluster"], "fake_cluster");
+    assert_eq!(status["exit"]["last_error"], "");
+    assert_eq!(status["watching"][0]["from"], "exit");
+    assert_eq!(status["watching"][0]["country"], "IS");
+    assert_eq!(status["totals"]["sessions"]["exit"], 1);
+    assert_eq!(status["totals"]["sessions"]["home"], 0);
+}
+
+#[tokio::test]
+async fn an_exit_that_goes_down_during_a_session_sends_the_playlist_home() {
+    let fake = FakeTwitch::start().await;
+    let channel = fake.channel("exit_down");
+    channel.segment_interval(std::time::Duration::ZERO);
+    channel.country("IS");
+    let proxy = fake.proxy().await;
+    let rig = Rig::with_fake(fake, &[&proxy.url()]).await;
+    let path = "/live/exit_down/chunked.m3u8";
+    let (code, first) = rig.get(path).await;
+    assert_eq!(code, 200, "{first}");
+    assert_eq!(urls(&first).len(), 5);
+    let before = rig.json("/api/status").await;
+    assert_eq!(before["watching"][0]["from"], "exit");
+    assert_eq!(before["totals"]["sessions"]["exit"], 1);
+    assert_eq!(before["totals"]["sessions"]["home"], 0);
+    proxy.down();
+    // Let the service's media cache expire before asking the failed exit again.
+    tokio::time::sleep(std::time::Duration::from_millis(950)).await;
+    let (code, text) = rig.get(path).await;
+    assert_eq!(code, 200, "{text}");
+    assert_eq!(urls(&text).len(), 5);
+    let status = rig.json("/api/status").await;
+    assert_eq!(status["watching"][0]["from"], "home");
+    assert_eq!(status["totals"]["sessions"]["home"], 1);
+    assert_eq!(status["totals"]["sessions"]["exit"], 1);
+    assert_eq!(status["exit"]["usable"], false);
+    assert_ne!(status["exit"]["last_error"].as_str().unwrap(), "");
+}
+
+#[tokio::test]
+async fn a_dropped_media_request_is_retried_once_without_losing_the_home_session() {
+    let rig = Rig::start(&[]).await;
+    let channel = rig.fake.channel("dropped_media");
+    channel.segment_interval(std::time::Duration::ZERO);
+    let (code, master) = rig.get("/live/dropped_media.m3u8").await;
+    assert_eq!(code, 200, "{master}");
+    channel.drop_next(1);
+    let (code, text) = rig.get("/live/dropped_media/chunked.m3u8").await;
+    assert_eq!(code, 200, "{text}");
+    assert_eq!(urls(&text).len(), 5);
+    let records = channel.requests();
+    let media: Vec<_> = records
+        .iter()
+        .filter(|request| request.uri.starts_with("/media/"))
+        .map(|request| {
+            (
+                request.method.as_str(),
+                request.uri.as_str(),
+                request.via.as_deref(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        media,
+        [("GET", "/media/dropped_media/chunked.m3u8", None); 2]
+    );
+    let status = rig.json("/api/status").await;
+    assert_eq!(status["watching"][0]["from"], "home");
+    assert_eq!(status["totals"]["sessions"]["home"], 1);
+    assert_eq!(status["totals"]["sessions"]["exit"], 0);
+}
+
+#[tokio::test]
+async fn a_dropped_token_request_through_the_exit_is_asked_once_more_and_the_session_still_opens_there()
+ {
+    let fake = FakeTwitch::start().await;
+    let channel = fake.channel("dropped_token");
+    channel.segment_interval(std::time::Duration::ZERO);
+    let proxy = fake.proxy().await;
+    let rig = Rig::with_fake(fake, &[&proxy.url()]).await;
+    channel.drop_next(1);
+    let (code, master) = rig.get("/live/dropped_token.m3u8").await;
+    assert_eq!(code, 200, "{master}");
+    let records = channel.requests();
+    let asked: Vec<_> = records
+        .iter()
+        .map(|request| {
+            (
+                request.method.as_str(),
+                request.uri.split('?').next().unwrap(),
+                request.via.as_deref(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        asked,
+        [
+            ("POST", "/gql", Some("1.1 fake-twitch")),
+            ("POST", "/gql", Some("1.1 fake-twitch")),
+            (
+                "GET",
+                "/api/channel/hls/dropped_token.m3u8",
+                Some("1.1 fake-twitch")
+            )
+        ]
+    );
+    let (code, text) = rig.get("/live/dropped_token/chunked.m3u8").await;
+    assert_eq!(code, 200, "{text}");
+    assert_eq!(urls(&text).len(), 5);
+    let status = rig.json("/api/status").await;
+    assert_eq!(status["watching"][0]["from"], "exit");
+    assert_eq!(status["totals"]["sessions"]["exit"], 1);
+    assert_eq!(status["totals"]["sessions"]["home"], 0);
+    assert_eq!(status["exit"]["usable"], true);
+    assert_eq!(status["exit"]["last_error"], "");
 }
 
 #[tokio::test]

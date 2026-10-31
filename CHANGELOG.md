@@ -38,6 +38,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   fakes. Adds timed channel windows, advert-break controls, dropped connections, per-channel
   statuses and countries, request records with `Via`, and an HTTP exit proxy with down/up
   controls. The service uses it only as a dev-dependency.
+- Four service tests against the fake: live exit routing and country, fallback when an active
+  exit goes down, a dropped media request retried in the same session, and a dropped token request
+  retried through the exit before the session opens.
 - The Python prototype as `reference/python/`, the page as `web/`, a generic compose file as
   `deploy/`, the pinned build image under `tools/build-image/` and the `tools/cargo.sh` wrapper.
 - `Dockerfile`: both binaries built statically on the pinned Alpine image and shipped on `scratch`

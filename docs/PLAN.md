@@ -45,8 +45,12 @@ The axum binary. Contract: every route and JSON field listed at the top of
 - [x] Tests against a fake Twitch (`crates/fake-twitch`): home session, clean
       stream, pre-roll cut and recorded, mid-roll with a discontinuity, offline channel, a passing
       error retried, a dead exit sending the session home, follows, the page and its headers.
-- [ ] Service tests still missing (the fake from [task 4](tasks/04-fake-twitch.md) supplies the controls): a live exit
-      proxy that goes down and comes back, a dropped connection, the exit's country in status.
+- [x] Service tests with the fake's proxy: a live exit carries master and media requests and
+      reports its country and cluster; an exit that goes down during a session falls back to home;
+      a dropped media request is retried without reopening the session; a dropped token request
+      through the exit is asked once more and the session opens there.
+- [ ] Return to the exit after recovery: needs a configurable exit rest interval so the test does
+      not wait for the service's 30 s `EXIT_REST` constant.
 - [x] A run against real Twitch from a home line (2026-10-30: the most-watched channel opened from
       Canada with 6 qualities; a 102 s mid-roll was cut, 7 segments, playlist held at 15; no unknown
       titles or classes).
