@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/formats", "crates/service", "crates/tools"]
+members = ["crates/formats", "crates/service", "crates/tools", "crates/fake-twitch"]
 
 [workspace.package]
 version = "0.1.0"

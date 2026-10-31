@@ -34,6 +34,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   preserves the prototype’s reports, exit codes and `upstream-state.json`. `--offline` compares
   without downloading or writing state; the folder comes from `--dir`, `BREAKLESS_UPSTREAM_DIR`,
   or `upstream` under the current working directory.
+- `fake-twitch`: an unpublished test crate holding the service's loopback Twitch, IRC and emote
+  fakes. Adds timed channel windows, advert-break controls, dropped connections, per-channel
+  statuses and countries, request records with `Via`, and an HTTP exit proxy with down/up
+  controls. The service uses it only as a dev-dependency.
 - The Python prototype as `reference/python/`, the page as `web/`, a generic compose file as
   `deploy/`, the pinned build image under `tools/build-image/` and the `tools/cargo.sh` wrapper.
 - `Dockerfile`: both binaries built statically on the pinned Alpine image and shipped on `scratch`

@@ -1,15 +1,15 @@
 # Task 04: a fake Twitch for the service's tests
 
-Status: open. A first version exists: `crates/service/tests/fake_twitch.rs` (GraphQL, master and
-media on loopback, scripted advert segments, a window that advances on command, 503s on demand).
-This task grows it into the crate below and adds what the service's tests still lack: an HTTP proxy
-that can go down and up, dropped connections, and per-request records with the `Via` header.
+Status: done. `crates/fake-twitch` provides the loopback HTTP, IRC and emote endpoints, timed or
+manual playlists, request records, scripted failures and an HTTP proxy with down/up controls.
+Its own tests cover the controls; all fourteen service tests retain their assertions.
 
 ## Goal
 
 A test-only crate, `crates/fake-twitch`, that stands in for Twitch's three endpoints on loopback so
-the service's session and fallback logic can be tested without the network. Start from the file
-above and move it; keep the ten tests in `crates/service/tests/service.rs` passing.
+the service's session and fallback logic can be tested without the network. Move the original
+`crates/service/tests/fake_twitch.rs`, including its plain TCP IRC server and emote tables; keep all
+fourteen tests in `crates/service/tests/service.rs` passing with the same behaviour.
 
 ## Read first
 

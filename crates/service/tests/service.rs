@@ -1,7 +1,5 @@
 //! The service against a fake Twitch: sessions, cutting, fallback, the list, the page.
 
-mod fake_twitch;
-
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -110,7 +108,7 @@ async fn health_answers() {
 #[tokio::test]
 async fn a_live_channel_gets_a_master_with_our_addresses_and_a_home_session() {
     let rig = Rig::start(&[]).await;
-    rig.fake.channel("alpha", &[], 5);
+    rig.fake.channel("alpha").script(&[], 5);
     let (code, text) = rig.get("/live/Alpha.m3u8").await;
     assert_eq!(code, 200, "{text}");
     assert!(text.contains("#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,CODECS=\"avc1.64002A,mp4a.40.2\",VIDEO=\"chunked\",FRAME-RATE=60.000\nalpha/chunked.m3u8\n"), "{text}");
@@ -130,7 +128,7 @@ async fn a_live_channel_gets_a_master_with_our_addresses_and_a_home_session() {
 #[tokio::test]
 async fn a_clean_stream_is_passed_on_and_grows_as_twitch_moves() {
     let rig = Rig::start(&[]).await;
-    rig.fake.channel("beta", &[], 5);
+    rig.fake.channel("beta").script(&[], 5);
     let (code, first) = rig.get("/live/beta/chunked.m3u8").await;
     assert_eq!(code, 200, "{first}");
     assert_eq!(urls(&first).len(), 5);
@@ -155,7 +153,8 @@ async fn a_clean_stream_is_passed_on_and_grows_as_twitch_moves() {
 async fn a_preroll_is_cut_the_playlist_holds_still_and_the_break_is_recorded() {
     let rig = Rig::start(&[]).await;
     rig.fake
-        .channel("gamma", &[true, true, true, true, true, true, true], 5); // 7 advert segments, then stream
+        .channel("gamma")
+        .script(&[true, true, true, true, true, true, true], 5); // 7 advert segments, then stream
     let (code, first) = rig.get("/live/gamma/chunked.m3u8").await;
     assert_eq!(code, 200, "{first}");
     assert!(urls(&first).is_empty(), "nothing to show yet: {first}");
@@ -197,7 +196,7 @@ async fn a_midroll_is_cut_with_a_discontinuity_after_it() {
     let rig = Rig::start(&[]).await;
     let mut ads = vec![false; 5];
     ads.extend([true, true, true]);
-    rig.fake.channel("delta", &ads, 5);
+    rig.fake.channel("delta").script(&ads, 5);
     rig.get("/live/delta/chunked.m3u8").await;
     rig.fake.advance("delta", 3); // the three advert segments
     tokio::time::sleep(std::time::Duration::from_millis(950)).await;
@@ -230,7 +229,7 @@ async fn an_offline_channel_is_404_with_a_plain_message() {
 #[tokio::test]
 async fn a_passing_error_is_retried_once_without_losing_the_session() {
     let rig = Rig::start(&[]).await;
-    rig.fake.channel("eps", &[], 5);
+    rig.fake.channel("eps").script(&[], 5);
     rig.fake.fail_media_next(1);
     let (code, text) = rig.get("/live/eps/chunked.m3u8").await;
     assert_eq!(code, 200, "{text}");
@@ -245,7 +244,7 @@ async fn a_passing_error_is_retried_once_without_losing_the_session() {
 #[tokio::test]
 async fn a_dead_exit_sends_the_session_home_and_shows_in_status() {
     let rig = Rig::start(&["http://127.0.0.1:9"]).await;
-    rig.fake.channel("zeta", &[], 5);
+    rig.fake.channel("zeta").script(&[], 5);
     let (code, text) = rig.get("/live/zeta/chunked.m3u8").await;
     assert_eq!(code, 200, "{text}");
     assert_eq!(urls(&text).len(), 5);
@@ -263,7 +262,7 @@ async fn a_dead_exit_sends_the_session_home_and_shows_in_status() {
 #[tokio::test]
 async fn follows_are_written_listed_and_guarded() {
     let rig = Rig::start(&[]).await;
-    rig.fake.channel("live_one", &[], 5);
+    rig.fake.channel("live_one").script(&[], 5);
     let (code, v) = rig
         .post("/api/follow", r#"{"login": "Live_One", "on": true}"#, None)
         .await;

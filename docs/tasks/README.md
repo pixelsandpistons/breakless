@@ -31,7 +31,7 @@ plus the files it names, pasted or attached.
 | [01](01-chat-formats.md) | Chat parsing and emote readers in `breakless-formats` | done | |
 | [02](02-upstream-watch.md) | The upstream watcher as `breakless-tools upstream` | done | |
 | [03](03-container-and-release.md) | Dockerfile to `scratch`, release workflow to GHCR | done; the workflow awaits its first tag | |
-| [04](04-fake-twitch.md) | A fake Twitch for the service's tests | nothing | 1 to 2 days |
+| [04](04-fake-twitch.md) | A fake Twitch for the service's tests | done | |
 | [05](05-youtube-probe.md) | The YouTube live measurement probe | nothing | 1 to 2 days, plus runs on a home line |
 | [06](06-docs-review.md) | Slop and accuracy review of every document | the others landing | half a day |
 

@@ -42,10 +42,10 @@ The axum binary. Contract: every route and JSON field listed at the top of
 - [x] Chat rooms over TLS to `irc.chat.twitch.tv:6697` as a guest, long poll of at most 25 s, 200
       events kept, 12 rooms, 60 s idle; emotes merged and cached as the prototype does. Tested
       against a fake chat server and fake providers; once live from a home line (2026-10-30).
-- [x] Tests against a fake Twitch (`crates/service/tests/fake_twitch.rs`): home session, clean
+- [x] Tests against a fake Twitch (`crates/fake-twitch`): home session, clean
       stream, pre-roll cut and recorded, mid-roll with a discontinuity, offline channel, a passing
       error retried, a dead exit sending the session home, follows, the page and its headers.
-- [ ] Tests still missing ([task 4](tasks/04-fake-twitch.md) grows the fake for them): a live exit
+- [ ] Service tests still missing (the fake from [task 4](tasks/04-fake-twitch.md) supplies the controls): a live exit
       proxy that goes down and comes back, a dropped connection, the exit's country in status.
 - [x] A run against real Twitch from a home line (2026-10-30: the most-watched channel opened from
       Canada with 6 qualities; a 102 s mid-roll was cut, 7 segments, playlist held at 15; no unknown
