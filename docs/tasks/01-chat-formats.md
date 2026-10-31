@@ -1,6 +1,7 @@
 # Task 01: chat parsing and emote readers in `breakless-formats`
 
-Status: open.
+Status: done. Landed as `crates/formats/src/chat.rs` and `emotes.rs` with the tests under
+`crates/formats/tests/`; the brief stays as the record of what was asked.
 
 ## Goal
 

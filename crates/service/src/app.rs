@@ -8,6 +8,7 @@ use breakless_formats::Media;
 use serde_json::{Value, json};
 
 use crate::channel::{Channel, EXIT, HOME, IDLE};
+use crate::chat::{Emotes, IrcTarget, Rooms};
 use crate::config::Config;
 use crate::store::Store;
 use crate::twitch::Twitch;
@@ -94,21 +95,32 @@ pub struct App {
     pub store: Store,
     /// The counters in `/api/status`.
     pub totals: Totals,
+    /// The chat rooms being read.
+    pub chat: Rooms,
+    /// The emote lists and their cache.
+    pub emotes: Emotes,
     started: Instant,
     channels: Mutex<BTreeMap<String, Arc<Channel>>>,
     listing: tokio::sync::Mutex<Option<(Instant, Value)>>,
 }
 
 impl App {
-    /// Builds the HTTP clients; fails only if a proxy address does not parse.
-    pub fn new(config: Config) -> Result<Self, reqwest::Error> {
-        let twitch = Twitch::new(&config.proxies(), &config.gql_url, &config.usher_url)?;
+    /// Builds the HTTP clients; fails if a proxy or the chat address does not parse.
+    pub fn new(config: Config) -> Result<Self, String> {
+        let twitch = Twitch::new(&config.proxies(), &config.gql_url, &config.usher_url)
+            .map_err(|e| e.to_string())?;
         let store = Store::new(&config.data);
+        let target = IrcTarget::parse(&config.irc_url)
+            .ok_or_else(|| format!("not a chat address: {}", config.irc_url))?;
+        let emotes = Emotes::new(Some(config.emotes_url.clone()).filter(|u| !u.is_empty()))
+            .map_err(|e| e.to_string())?;
         Ok(Self {
             config,
             twitch,
             store,
             totals: Totals::default(),
+            chat: Rooms::new(target),
+            emotes,
             started: Instant::now(),
             channels: Mutex::new(BTreeMap::new()),
             listing: tokio::sync::Mutex::new(None),
@@ -136,8 +148,10 @@ impl App {
             .collect()
     }
 
-    /// Drops channels nobody asked for in [`IDLE`].
+    /// Drops channels nobody asked for in [`IDLE`], and chat rooms nobody read in
+    /// [`crate::chat::IDLE`].
     pub fn reap(&self) {
+        self.chat.reap();
         let mut map = self
             .channels
             .lock()
@@ -186,7 +200,7 @@ impl App {
             "exit": exit,
             "exits": exits,
             "watching": watching,
-            "chat": [],
+            "chat": self.chat.status(),
             "totals": self.totals.json(),
         })
     }

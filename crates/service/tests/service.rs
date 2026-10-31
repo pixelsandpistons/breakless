@@ -35,6 +35,8 @@ impl Rig {
             web: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web"),
             gql_url: fake.gql_url(),
             usher_url: fake.usher_url(),
+            irc_url: fake.irc_url(),
+            emotes_url: fake.emotes_url(),
         };
         let app = Arc::new(App::new(config).unwrap());
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -330,6 +332,150 @@ async fn the_page_and_its_files_are_served_with_the_security_headers() {
     assert_eq!(rig.get("/static/../Cargo.toml").await.0, 404);
     assert_eq!(rig.get("/static/missing.css").await.0, 404);
     assert_eq!(rig.get("/nothing/here").await.0, 404);
-    let (code, text) = rig.get("/api/chat/somebody").await;
-    assert_eq!(code, 501, "{text}");
+}
+
+const MSG: &str = "@badge-info=subscriber/14;badges=moderator/1,subscriber/12,bits/1000;color=#1E90FF;display-name=Some\\sOne;\
+emotes=25:6-10,18-22/1902:12-16;first-msg=0;id=abc-1;room-id=71092938;tmi-sent-ts=1;user-id=7 \
+:someone!someone@someone.tmi.twitch.tv PRIVMSG #chan :hello Kappa Keepo Kappa: done";
+
+async fn joined(rig: &Rig, login: &str) -> Value {
+    for _ in 0..50 {
+        let v = rig.json(&format!("/api/chat/{login}")).await;
+        if v["state"] == "joined" {
+            return v;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    panic!("{login}: chat never joined");
+}
+
+#[tokio::test]
+async fn chat_joins_as_a_guest_numbers_events_and_answers_pings() {
+    let rig = Rig::start(&[]).await;
+    let first = joined(&rig, "Chan").await;
+    assert_eq!(first["channel"], "chan");
+    assert_eq!(first["room_id"], "71092938");
+    assert_eq!(first["seq"], 0);
+    assert_eq!(first["events"], serde_json::json!([]));
+    let sent = rig.fake.irc_received();
+    assert_eq!(sent[0], "CAP REQ :twitch.tv/tags twitch.tv/commands");
+    assert!(sent[1].starts_with("NICK justinfan"), "{sent:?}");
+    assert_eq!(sent[2], "JOIN #chan");
+    rig.fake.irc_say(MSG);
+    rig.fake.irc_say(MSG);
+    let got = rig.json("/api/chat/chan?after=0&wait=5").await;
+    assert_eq!(got["seq"], 2);
+    let events = got["events"].as_array().unwrap();
+    assert_eq!(events.len(), 2);
+    assert_eq!(events[0]["n"], 1);
+    assert_eq!(events[0]["k"], "m");
+    assert_eq!(events[0]["name"], "Some One");
+    assert_eq!(events[0]["emotes"][0], serde_json::json!(["25", 6, 10]));
+    assert_eq!(events[1]["n"], 2);
+    let later = rig.json("/api/chat/chan?after=1").await;
+    assert_eq!(later["events"].as_array().unwrap().len(), 1);
+    assert_eq!(later["events"][0]["n"], 2);
+    rig.fake.irc_say("PING :tmi.twitch.tv");
+    for _ in 0..50 {
+        if rig
+            .fake
+            .irc_received()
+            .contains(&"PONG :tmi.twitch.tv".to_string())
+        {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    assert!(
+        rig.fake
+            .irc_received()
+            .contains(&"PONG :tmi.twitch.tv".to_string())
+    );
+    let status = rig.json("/api/status").await;
+    assert_eq!(status["chat"][0]["channel"], "chan");
+    assert_eq!(status["chat"][0]["state"], "joined");
+    assert_eq!(status["chat"][0]["events"], 2);
+}
+
+#[tokio::test]
+async fn a_poll_waits_for_the_next_message_and_gives_up_after_wait() {
+    let rig = Rig::start(&[]).await;
+    joined(&rig, "waiting").await;
+    let t0 = std::time::Instant::now();
+    let empty = rig.json("/api/chat/waiting?after=0&wait=0.3").await;
+    assert_eq!(empty["events"], serde_json::json!([]));
+    assert!(t0.elapsed() >= std::time::Duration::from_millis(250));
+    let fake = rig.fake.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        fake.irc_say(MSG);
+    });
+    let t0 = std::time::Instant::now();
+    let got = rig.json("/api/chat/waiting?after=0&wait=5").await;
+    assert_eq!(got["events"].as_array().unwrap().len(), 1);
+    assert!(t0.elapsed() < std::time::Duration::from_secs(2));
+    // a number from before a restart gets the recent ones
+    let again = rig.json("/api/chat/waiting?after=5000").await;
+    assert_eq!(again["events"].as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn emotes_merge_channel_over_global_and_a_provider_away_does_not_empty_the_rest() {
+    let rig = Rig::start(&[]).await;
+    joined(&rig, "emoting").await;
+    let r = rig.get_full("/api/emotes/emoting").await;
+    assert_eq!(r.status(), 200);
+    assert_eq!(r.headers()["cache-control"], "private, max-age=300");
+    let got: Value = serde_json::from_str(&r.text().await.unwrap()).unwrap();
+    assert_eq!(got["room_id"], "71092938");
+    assert_eq!(
+        got["emotes"]["catJAM"],
+        serde_json::json!(["7", "01C", false])
+    );
+    assert_eq!(got["emotes"]["OnlyFFZ"][0], "f");
+    assert_eq!(got["emotes"]["monkaS"][0], "b");
+    assert_eq!(
+        got["counts"]["b"],
+        serde_json::json!({"global": 1, "channel": 2})
+    );
+    assert_eq!(got["errors"], serde_json::json!({}));
+    assert_eq!(rig.fake.emote_requests().len(), 6);
+    // answers are reused
+    rig.json("/api/emotes/emoting").await;
+    assert_eq!(rig.fake.emote_requests().len(), 6);
+    // a fresh service: 7TV away, FrankerFaceZ has no room (a 404 is not a fault)
+    let rig = Rig::start(&[]).await;
+    rig.fake.emote_status("7tv.io", 500);
+    rig.fake.emote_status("frankerfacez.com/v1/room", 404);
+    joined(&rig, "emoting").await;
+    let got = rig.json("/api/emotes/emoting").await;
+    assert_eq!(
+        got["emotes"]["catJAM"],
+        serde_json::json!(["b", "aaa", false])
+    );
+    let mut errors: Vec<&String> = got["errors"].as_object().unwrap().keys().collect();
+    errors.sort();
+    assert_eq!(errors, ["7TV channel", "7TV global"]);
+    assert_eq!(got["errors"]["7TV global"], "HTTP 500");
+}
+
+#[tokio::test]
+async fn at_most_twelve_rooms_are_read_at_once() {
+    let rig = Rig::start(&[]).await;
+    for i in 0..13 {
+        rig.json(&format!("/api/chat/room{i:02}")).await;
+    }
+    let status = rig.json("/api/status").await;
+    let rooms: Vec<&str> = status["chat"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["channel"].as_str().unwrap())
+        .collect();
+    assert_eq!(rooms.len(), 12);
+    assert!(
+        !rooms.contains(&"room00"),
+        "the least recently read was dropped: {rooms:?}"
+    );
+    assert!(rooms.contains(&"room12"));
 }

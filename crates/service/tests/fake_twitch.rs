@@ -3,6 +3,10 @@
 //!
 //! Each channel has a script: one flag per 2-second segment, `true` for an advert. The media
 //! playlist shows a window of five segments ending at the channel's position; `advance` moves it.
+//!
+//! Beside those: a chat server on a plain socket (it answers a `JOIN` with `ROOMSTATE`, records
+//! what clients send, and says whatever a test tells it to) and the three emote providers'
+//! lists, keyed by a piece of the address, as the prototype's tests key them.
 
 #![allow(
     dead_code,
@@ -22,6 +26,8 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use serde_json::{Value, json};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::sync::broadcast;
 
 #[derive(Clone)]
 pub struct Script {
@@ -38,12 +44,20 @@ pub struct Inner {
     pub fail_media_next: usize,
     pub country: String,
     pub requests: Vec<String>,
+    /// Lines chat clients sent, in order.
+    pub irc_received: Vec<String>,
+    /// `(piece of the address, status)`: an emote list that answers that status instead.
+    pub emote_status: Vec<(String, u16)>,
+    /// Emote list addresses asked, in order.
+    pub emote_requests: Vec<String>,
 }
 
 #[derive(Clone)]
 pub struct FakeTwitch {
     pub base: String,
+    pub irc: SocketAddr,
     pub inner: Arc<Mutex<Inner>>,
+    say: broadcast::Sender<String>,
 }
 
 const WINDOW: usize = 5;
@@ -56,17 +70,92 @@ impl FakeTwitch {
         }));
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr: SocketAddr = listener.local_addr().unwrap();
+        let irc_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let irc = irc_listener.local_addr().unwrap();
+        let (say, _) = broadcast::channel(64);
         let fake = Self {
             base: format!("http://{addr}"),
+            irc,
             inner,
+            say,
         };
         let app = Router::new()
             .route("/gql", post(gql))
             .route("/api/channel/hls/{file}", get(master))
             .route("/media/{login}/{file}", get(media))
+            .route("/emotes/{*rest}", get(emotes))
             .with_state(fake.clone());
         tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let chat = fake.clone();
+        tokio::spawn(async move {
+            loop {
+                let Ok((socket, _)) = irc_listener.accept().await else {
+                    break;
+                };
+                tokio::spawn(chat.clone().irc_client(socket));
+            }
+        });
         fake
+    }
+
+    /// Where the chat server is, for `--irc-url`.
+    pub fn irc_url(&self) -> String {
+        format!("tcp://{}", self.irc)
+    }
+
+    /// Where the emote lists are, for `--emotes-url`.
+    pub fn emotes_url(&self) -> String {
+        format!("{}/emotes", self.base)
+    }
+
+    /// Says a line to every connected chat client.
+    pub fn irc_say(&self, line: &str) {
+        let _ = self.say.send(line.to_string());
+    }
+
+    pub fn irc_received(&self) -> Vec<String> {
+        self.inner.lock().unwrap().irc_received.clone()
+    }
+
+    /// Emote list addresses containing `piece` answer `status` from now on.
+    pub fn emote_status(&self, piece: &str, status: u16) {
+        self.inner
+            .lock()
+            .unwrap()
+            .emote_status
+            .push((piece.to_string(), status));
+    }
+
+    pub fn emote_requests(&self) -> Vec<String> {
+        self.inner.lock().unwrap().emote_requests.clone()
+    }
+
+    async fn irc_client(self, socket: tokio::net::TcpStream) {
+        let (reader, mut writer) = socket.into_split();
+        let mut lines = BufReader::new(reader).lines();
+        let mut say = self.say.subscribe();
+        loop {
+            tokio::select! {
+                line = lines.next_line() => {
+                    let Ok(Some(line)) = line else { break };
+                    self.inner.lock().unwrap().irc_received.push(line.clone());
+                    if let Some(channel) = line.strip_prefix("JOIN #") {
+                        let answer = format!(
+                            ":tmi.twitch.tv 001 justinfan1 :Welcome, GLHF!\r\n@emote-only=0;room-id=71092938;slow=0 :tmi.twitch.tv ROOMSTATE #{channel}\r\n"
+                        );
+                        if writer.write_all(answer.as_bytes()).await.is_err() {
+                            break;
+                        }
+                    }
+                }
+                said = say.recv() => {
+                    let Ok(said) = said else { break };
+                    if writer.write_all(format!("{said}\r\n").as_bytes()).await.is_err() {
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     pub fn gql_url(&self) -> String {
@@ -251,6 +340,50 @@ async fn media(
     let mut text = out.join("\n");
     text.push('\n');
     ([("Content-Type", "application/vnd.apple.mpegurl")], text).into_response()
+}
+
+/// The prototype's test tables (`reference/python/test_chat.py`, `EmoteTests`), chosen by a
+/// piece of the address.
+async fn emotes(State(fake): State<FakeTwitch>, Path(rest): Path<String>) -> Response {
+    let mut inner = fake.inner.lock().unwrap();
+    inner.emote_requests.push(rest.clone());
+    if let Some((_, status)) = inner.emote_status.iter().find(|(p, _)| rest.contains(p)) {
+        return (
+            StatusCode::from_u16(*status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            "no",
+        )
+            .into_response();
+    }
+    let table: &[(&str, Value)] = &[
+        (
+            "betterttv.net/3/cached/emotes/global",
+            json!([{"id": "54fa8f1401e468494b85b537", "code": ":tf:", "imageType": "png", "modifier": false}, {"id": "bad id!", "code": "Nope"}]),
+        ),
+        (
+            "betterttv.net/3/cached/users",
+            json!({"channelEmotes": [{"id": "aaa", "code": "catJAM"}], "sharedEmotes": [{"id": "bbb", "code": "monkaS"}]}),
+        ),
+        (
+            "frankerfacez.com/v1/set/global",
+            json!({"default_sets": [3], "sets": {"3": {"emoticons": [{"id": 9, "name": "ZrehplaR"}]}, "4": {"emoticons": [{"id": 10, "name": "NotDefault"}]}}}),
+        ),
+        (
+            "frankerfacez.com/v1/room",
+            json!({"room": {}, "sets": {"166907": {"emoticons": [{"id": 77, "name": "catJAM"}, {"id": 78, "name": "OnlyFFZ"}]}}}),
+        ),
+        (
+            "7tv.io/v3/emote-sets/global",
+            json!({"emotes": [{"id": "01A", "name": "reckH", "flags": 0}, {"id": "01B", "name": "RainTime", "flags": 1}]}),
+        ),
+        (
+            "7tv.io/v3/users",
+            json!({"emote_set": {"emotes": [{"id": "01C", "name": "catJAM", "flags": 0}]}}),
+        ),
+    ];
+    match table.iter().find(|(piece, _)| rest.contains(piece)) {
+        Some((_, v)) => j(v.clone()),
+        None => (StatusCode::NOT_FOUND, "no such list").into_response(),
+    }
 }
 
 fn when(i: usize) -> String {

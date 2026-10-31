@@ -27,7 +27,7 @@ collect by long poll. **Emotes** are three providers' lists merged, channel over
 
 | Crate | Holds | Depends on |
 |---|---|---|
-| `breakless-formats` | Everything that knows Twitch's formats and nothing that does I/O: playlists, advert marks, `Timeline`, chat lines and events, emote readers, the GraphQL text. Every fact that can go stale lives here, covered by fixtures | standard library (serde for the chat and emote shapes, when they land) |
+| `breakless-formats` | Everything that knows Twitch's formats and nothing that does I/O: playlists, advert marks, `Timeline`, chat lines and events, emote readers, the GraphQL text. Every fact that can go stale lives here, covered by fixtures | standard library, serde for the chat and emote shapes |
 | `breakless` (service) | tokio, axum, reqwest through an HTTP proxy, rustls for chat, the routes, the session and exit logic, the files on disk | `breakless-formats` |
 | `breakless-tools` | probe, soak, watch-raw, capture, upstream | `breakless-formats`, reqwest |
 

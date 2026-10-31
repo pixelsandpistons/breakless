@@ -47,6 +47,19 @@ pub struct Config {
         hide = true
     )]
     pub usher_url: String,
+
+    /// Twitch's chat server, `tls://host:port`; `tcp://` for a plain socket. Only tests change it.
+    #[arg(
+        long,
+        env = "BREAKLESS_IRC_URL",
+        default_value = "tls://irc.chat.twitch.tv:6697",
+        hide = true
+    )]
+    pub irc_url: String,
+
+    /// A base that replaces `https://` in the emote providers' addresses. Only tests set it.
+    #[arg(long, env = "BREAKLESS_EMOTES_URL", default_value = "", hide = true)]
+    pub emotes_url: String,
 }
 
 impl Config {

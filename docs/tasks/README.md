@@ -28,7 +28,7 @@ plus the files it names, pasted or attached.
 
 | Task | What | Needs first | Size |
 |---|---|---|---|
-| [01](01-chat-formats.md) | Chat parsing and emote readers in `breakless-formats` | nothing | 1 to 2 days |
+| [01](01-chat-formats.md) | Chat parsing and emote readers in `breakless-formats` | done | |
 | [02](02-upstream-watch.md) | The upstream watcher as `breakless-tools upstream` | nothing | 1 day |
 | [03](03-container-and-release.md) | Dockerfile to `scratch`, release workflow to GHCR | the service binary (present) | 1 day |
 | [04](04-fake-twitch.md) | A fake Twitch for the service's tests | nothing | 1 to 2 days |

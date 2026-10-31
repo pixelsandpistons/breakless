@@ -11,16 +11,19 @@ reasoning that matters is here.
   the exit; from the maintainer's home line without the exit, every stream opened with a pre-roll of
   15 to 51 s and busy channels had mid-rolls of 1 to 3 minutes, all cut.
 - `breakless-formats` parses the playlists and rebuilds the timeline exactly as the prototype does,
-  proven by `crates/formats/tests/differential.rs` against `fixtures/expected/`.
-- Nothing else is written in Rust yet.
+  proven by `crates/formats/tests/differential.rs` against `fixtures/expected/`; it also holds the
+  chat line, event and emote-list code, compared with the prototype's JSON.
+- The service serves every route of the prototype, chat and emotes included, and has run against
+  real Twitch from a home line and through an exit (the phase 2 list below says what was seen).
+- The tools except `upstream` are ported. The container image and the releases are not started.
 
 ## Phases
 
-### 1. Formats (done except chat)
+### 1. Formats
 
 - [x] Master and media playlists, advert marks, unknown-mark reporting, `Timeline`.
-- [ ] Chat: IRC line and tag parsing, events, the room state machine, emote list readers and merge
-      ([task 1](tasks/01-chat-formats.md)).
+- [x] Chat: IRC line and tag parsing, events, the room's rules, the numbered log, emote list
+      readers and merge ([task 1](tasks/01-chat-formats.md), done).
 - [ ] Twitch request and response types for the GraphQL calls the service makes (token, who is live,
       most watched).
 
@@ -35,8 +38,9 @@ The axum binary. Contract: every route and JSON field listed at the top of
       one slow quality does not hold the others; opening a session holds the channel's lock.
 - [x] `/api/status`, `/api/watch`, `/api/channels`, `/api/follow`, static files, the CSP header.
 - [x] `adverts.jsonl` (same line shape, 1 MB rotation) and `follows.json` (atomic write).
-- [ ] Chat rooms over TLS to `irc.chat.twitch.tv:6697` as a guest, long poll of at most 25 s, 200
-      events kept, 12 rooms, 60 s idle; emotes merged and cached as the prototype does.
+- [x] Chat rooms over TLS to `irc.chat.twitch.tv:6697` as a guest, long poll of at most 25 s, 200
+      events kept, 12 rooms, 60 s idle; emotes merged and cached as the prototype does. Tested
+      against a fake chat server and fake providers; once live from a home line (2026-10-30).
 - [x] Tests against a fake Twitch (`crates/service/tests/fake_twitch.rs`): home session, clean
       stream, pre-roll cut and recorded, mid-roll with a discontinuity, offline channel, a passing
       error retried, a dead exit sending the session home, follows, the page and its headers.

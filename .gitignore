@@ -2,3 +2,4 @@
 /upstream/
 /deploy/.env
 /deploy/data/
+__pycache__/

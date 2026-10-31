@@ -30,6 +30,12 @@ enum Command {
         #[arg(long, default_value = "http://127.0.0.1:8080/health")]
         url: String,
     },
+    /// Print a running service's `/api/status`. For scripts on a host whose container has no shell.
+    Status {
+        /// The service's status address.
+        #[arg(long, default_value = "http://127.0.0.1:8080/api/status")]
+        url: String,
+    },
 }
 
 fn main() {
@@ -37,6 +43,17 @@ fn main() {
     match Cli::parse().command {
         Command::Serve(config) => serve(config),
         Command::Health { url } => std::process::exit(i32::from(!healthy(&url))),
+        Command::Status { url } => match fetch(&url) {
+            Some((200, body)) => println!("{body}"),
+            Some((code, body)) => {
+                eprintln!("HTTP {code}: {}", body.trim());
+                std::process::exit(1);
+            }
+            None => {
+                eprintln!("no answer from {url}");
+                std::process::exit(1);
+            }
+        },
     }
 }
 
@@ -46,7 +63,10 @@ fn serve(config: Config) {
         let listen = config.listen;
         let exits = config.proxies();
         let data = config.data.clone();
-        let app = Arc::new(app::App::new(config).expect("HTTP clients"));
+        let app = Arc::new(app::App::new(config).unwrap_or_else(|e| {
+            eprintln!("{e}");
+            std::process::exit(2);
+        }));
         let reaper = app.clone();
         tokio::spawn(async move {
             let mut tick = tokio::time::interval(Duration::from_secs(15));
@@ -76,29 +96,27 @@ fn serve(config: Config) {
     });
 }
 
-/// A plain HTTP/1.0 GET with the standard library: the runtime image has no `curl`.
-fn healthy(url: &str) -> bool {
-    let Some(rest) = url.strip_prefix("http://") else {
-        return false;
-    };
+/// A plain HTTP/1.0 GET with the standard library: the runtime image has no `curl`. The status
+/// code and the body, or `None` when nothing answered.
+fn fetch(url: &str) -> Option<(u16, String)> {
+    let rest = url.strip_prefix("http://")?;
     let (host_port, path) = rest
         .split_once('/')
         .map_or((rest, "/"), |(h, _)| (h, &rest[h.len()..]));
-    let Ok(mut stream) = TcpStream::connect(host_port) else {
-        return false;
-    };
+    let mut stream = TcpStream::connect(host_port).ok()?;
     let timeout = Some(Duration::from_secs(5));
-    if stream.set_read_timeout(timeout).is_err() || stream.set_write_timeout(timeout).is_err() {
-        return false;
-    }
+    stream.set_read_timeout(timeout).ok()?;
+    stream.set_write_timeout(timeout).ok()?;
     let request = format!("GET {path} HTTP/1.0\r\nHost: {host_port}\r\nConnection: close\r\n\r\n");
-    if stream.write_all(request.as_bytes()).is_err() {
-        return false;
-    }
-    let mut head = [0u8; 64];
-    let Ok(n) = stream.read(&mut head) else {
-        return false;
-    };
-    String::from_utf8_lossy(&head[..n]).starts_with("HTTP/1.")
-        && head[..n].windows(4).any(|w| w == b" 200")
+    stream.write_all(request.as_bytes()).ok()?;
+    let mut raw = Vec::new();
+    stream.read_to_end(&mut raw).ok()?;
+    let text = String::from_utf8_lossy(&raw).into_owned();
+    let (head, body) = text.split_once("\r\n\r\n")?;
+    let code = head.split_whitespace().nth(1)?.parse().ok()?;
+    Some((code, body.to_string()))
+}
+
+fn healthy(url: &str) -> bool {
+    fetch(url).is_some_and(|(code, _)| code == 200)
 }

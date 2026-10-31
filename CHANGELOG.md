@@ -14,6 +14,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   playlists, `/api/status` (plus an `exits` list and the proxy's host per exit), `/api/watch`,
   `/api/channels`, `/api/follow`, the page, `adverts.jsonl` and `follows.json`. Ten tests drive it
   against a fake Twitch on loopback. `/api/chat` and `/api/emotes` answer 501 until the chat lands.
+- `breakless-formats`: chat lines and tags, the four event kinds, the room's rules, the numbered
+  log of the last 200 events, and the three emote providers' list readers and merge. 17 tests;
+  two compare the JSON with the prototype's for the same message and the same six lists.
+- `breakless` (the service): `/api/chat` (guest rooms over TLS, the 25 s long poll, 12 rooms,
+  left after 60 s idle) and `/api/emotes` (the lists fetched together and kept: global an hour,
+  a channel's ten minutes, a failure a minute), and the `chat` list in `/api/status`. Four tests
+  against a fake chat server and fake providers.
+- `breakless status`: prints a running service's `/api/status`, for scripts on a host whose
+  container has no shell.
 - `breakless-tools probe`: pre-roll measurement per token kind, straight out or through a proxy,
   with the prototype's table and summary lines.
 - `breakless-tools soak`: watches channels through a running service and reports breaks, stalls
@@ -29,6 +38,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 - The capture tool also scrubs `SERVING-ID`, `VIDEO-SESSION-ID` and `BROADCAST-ID`.
 - The soak and page tests default to `http://127.0.0.1:8080` instead of the maintainer's hostname.
+- The prototype's compiled bytecode (`__pycache__/`) is no longer in the repository.
 - Attribute lookup in `DATERANGE` and `STREAM-INF` lines matches whole keys only, so `DURATION`
   cannot match inside `X-TV-TWITCH-AD-POD-FILLED-DURATION`. The prototype matched the first
   occurrence; on every captured playlist the result is the same.

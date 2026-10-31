@@ -7,8 +7,12 @@
 //! - [`playlist`]: master and media playlists, advert marks, the viewer facts Twitch states.
 //! - [`timeline`]: the playlist handed to players, stream segments only, numbered by us.
 //! - [`attrs`]: the attribute-list and date parsing the two above share.
+//! - [`chat`]: IRC lines, the events a reader sees, the room's rules, the numbered log.
+//! - [`emotes`]: the three emote providers' lists and how they merge.
 
 pub mod attrs;
+pub mod chat;
+pub mod emotes;
 pub mod playlist;
 pub mod timeline;
 

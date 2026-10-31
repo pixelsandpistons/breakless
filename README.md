@@ -7,8 +7,8 @@ playlists. Self-hosted, written in Rust, made with AI.
 > [`reference/python/`](reference/python/), live at the maintainer's home since 4 October 2026. The
 > Rust rewrite in [`crates/`](crates/) is in progress: the playlist parser and the rebuilt timeline
 > are done and tested against the prototype's output, and the service serves playlists against a
-> fake Twitch and, once each, against real Twitch from a home line and through an exit; chat, the
-> tools and an hour with a real player are not done.
+> fake Twitch and, once each, against real Twitch from a home line and through an exit; chat and the
+> tools are built; the container image and an hour with a real player are not done.
 > See [Status](#status).
 
 ## What it does
@@ -43,7 +43,7 @@ page: a channel list, a player, read-only chat with BetterTTV, FrankerFaceZ and 
 | Python prototype (`reference/python/`) | Running at the maintainer's home since 2026-10-04 through an exit in Iceland: 0 advert breaks seen through the exit in every soak and status read since. 41 offline tests. Standard library only |
 | `breakless-formats` (Rust) | Playlist parsing, advert marks, the rebuilt timeline: 25 tests, including a byte-for-byte comparison with the prototype's output on real captured playlists |
 | `breakless` service (Rust) | Playlists, sessions, exits with fallback, status, the channel list, follows, the page: built, 10 tests against a fake Twitch in `crates/service/tests/`. Same routes and fields as the prototype. Run once against real Twitch from a home line on 2026-10-30: a real mid-roll of 102 s was cut (7 segments) with no unknown marks; through an exit in Iceland the same day: a 10-minute soak of six busy channels passed 1,870 segments with nothing cut, no stalls and no errors, and ignored 12 client-side advert requests. The page in headless Chromium against it on a home line: 1080p video playing after a real 30 s pre-roll was cut (16 segments). No player has watched it for an hour yet |
-| Chat and emotes (Rust) | Not started; `/api/chat` and `/api/emotes` answer 501. The prototype's `chat.py` is the specification ([task 01](docs/tasks/01-chat-formats.md)) |
+| Chat and emotes (Rust) | Built: guest chat rooms over TLS with the prototype's long poll, the three emote providers merged and cached. The prototype's 18 offline tests are ported (12 on the parsing in `breakless-formats`, 4 against a fake chat server and fake providers in the service); two compare the JSON with what `chat.py` produces, field for field. Run once against real Twitch from a home line on 2026-10-30: joined the most-watched channel's chat, messages arrived with their emote positions, 131 emote words from the three providers with no errors |
 | Tools (Rust, `breakless-tools`) | `probe` built; same table and last lines as the prototype's, run once from a home line (3 of 3 pre-rolls, as expected there). `soak`, `watch-raw` and `capture` built (`capture`'s scrub is tested against the fixtures; `soak` and `watch-raw` drive a running service and have no automated test). `upstream` not started ([task 02](docs/tasks/02-upstream-watch.md)) |
 | Container image, releases | Not started |
 | YouTube | Research only; see [the plan](docs/PLAN.md#youtube) |

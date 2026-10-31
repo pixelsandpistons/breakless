@@ -125,9 +125,11 @@ dependencies = [
  "clap",
  "reqwest",
  "rustls",
+ "rustls-platform-verifier",
  "serde",
  "serde_json",
  "tokio",
+ "tokio-rustls",
  "tracing",
  "tracing-subscriber",
 ]
@@ -135,6 +137,10 @@ dependencies = [
 [[package]]
 name = "breakless-formats"
 version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "breakless-tools"

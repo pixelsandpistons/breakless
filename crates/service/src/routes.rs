@@ -2,6 +2,7 @@
 //! and their answers stay exactly what `reference/python/server.py` lists.
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::Router;
 use axum::body::{Body, Bytes};
@@ -100,7 +101,16 @@ async fn dispatch(
     }
 }
 
-async fn get(app: &App, path: &str, _query: &str) -> Response<Body> {
+/// The value of `key` in a query string, or empty.
+fn query_value<'a>(query: &'a str, key: &str) -> &'a str {
+    query
+        .split('&')
+        .filter_map(|p| p.split_once('='))
+        .find(|(k, _)| *k == key)
+        .map_or("", |(_, v)| v)
+}
+
+async fn get(app: &App, path: &str, query: &str) -> Response<Body> {
     if path == "/health" {
         return send(StatusCode::OK, "ok\n", "text/plain", "no-store");
     }
@@ -113,15 +123,34 @@ async fn get(app: &App, path: &str, _query: &str) -> Response<Body> {
     if let Some(login) = path.strip_prefix("/api/watch/").filter(|l| valid_login(l)) {
         return json(StatusCode::OK, &app.watch(login).await);
     }
-    if let Some(login) = path
-        .strip_prefix("/api/chat/")
-        .or_else(|| path.strip_prefix("/api/emotes/"))
-        && valid_login(login)
-    {
-        return error(
-            StatusCode::NOT_IMPLEMENTED,
-            "chat is not yet in this build of the service",
+    if let Some(login) = path.strip_prefix("/api/chat/").filter(|l| valid_login(l)) {
+        let after = query_value(query, "after");
+        let after = if !after.is_empty() && after.bytes().all(|b| b.is_ascii_digit()) {
+            after.parse::<u64>().ok()
+        } else {
+            None
+        };
+        let wait = query_value(query, "wait")
+            .parse::<f64>()
+            .ok()
+            .filter(|w| w.is_finite() && *w > 0.0)
+            .map_or(Duration::ZERO, Duration::from_secs_f64);
+        return json(
+            StatusCode::OK,
+            &app.chat.room(login).poll(after, wait).await,
         );
+    }
+    if let Some(login) = path.strip_prefix("/api/emotes/").filter(|l| valid_login(l)) {
+        let room = app.chat.room(login);
+        // the channel's number comes with the join: give it two seconds
+        for _ in 0..20 {
+            if !room.room_id().is_empty() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        let v = app.emotes.emotes(&room.room_id()).await;
+        return send(StatusCode::OK, v.to_string(), JSON, "private, max-age=300");
     }
     if let Some(rest) = path.strip_prefix("/live/") {
         if let Some(login) = rest.strip_suffix(".m3u8")
